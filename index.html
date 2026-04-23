@@ -1,0 +1,1600 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>法扣案件公文工具</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy: #1e2d5a;
+  --navy-dark: #141e3d;
+  --navy-mid: #2c3e6b;
+  --navy-light: #3d5494;
+  --gold: #c4973a;
+  --gold-light: #e8c97a;
+  --gold-pale: #fdf6e3;
+  --bg: #f0f2f8;
+  --bg-card: #ffffff;
+  --text: #1a1f35;
+  --text-mid: #4a5270;
+  --text-light: #8892b0;
+  --border: #d4d9ec;
+  --accent-red: #c0392b;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Noto Serif TC', 'Georgia', serif;
+  background: var(--bg);
+  min-height: 100vh;
+  color: var(--text);
+}
+
+/* ===== HOME PAGE ===== */
+.home {
+  min-height: 100vh;
+  background: linear-gradient(160deg, var(--navy-dark) 0%, var(--navy) 50%, var(--navy-mid) 100%);
+  padding: 40px 20px;
+  position: relative;
+  overflow: hidden;
+}
+.home::before {
+  content: '';
+  position: absolute;
+  top: -80px; right: -80px;
+  width: 300px; height: 300px;
+  background: radial-gradient(circle, rgba(196,151,58,0.15) 0%, transparent 70%);
+  border-radius: 50%;
+}
+.home::after {
+  content: '';
+  position: absolute;
+  bottom: -60px; left: -60px;
+  width: 250px; height: 250px;
+  background: radial-gradient(circle, rgba(196,151,58,0.1) 0%, transparent 70%);
+  border-radius: 50%;
+}
+.home-header {
+  text-align: center;
+  margin-bottom: 40px;
+  position: relative; z-index: 1;
+}
+.home-logo {
+  font-size: 13px;
+  color: var(--gold-light);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  opacity: 0.8;
+}
+.home-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.3;
+  margin-bottom: 8px;
+}
+.home-title span {
+  color: var(--gold-light);
+}
+.home-sub {
+  font-size: 13px;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 1px;
+}
+.home-divider {
+  width: 60px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  margin: 20px auto;
+}
+
+.situation-label {
+  text-align: center;
+  font-size: 12px;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  position: relative; z-index: 1;
+}
+
+.situation-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  max-width: 500px;
+  margin: 0 auto;
+  position: relative; z-index: 1;
+}
+.situation-card {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(196,151,58,0.25);
+  border-radius: 14px;
+  padding: 18px 14px;
+  cursor: pointer;
+  transition: all 0.25s;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.situation-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(196,151,58,0.08) 0%, transparent 60%);
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+.situation-card:hover { border-color: var(--gold); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
+.situation-card:hover::before { opacity: 1; }
+.situation-card.coming-soon { opacity: 0.45; cursor: default; }
+.situation-card.coming-soon:hover { transform: none; box-shadow: none; }
+.sit-icon { font-size: 26px; margin-bottom: 8px; }
+.sit-title { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 4px; }
+.sit-sub { font-size: 11px; color: rgba(255,255,255,0.45); line-height: 1.4; }
+.sit-badge {
+  display: inline-block;
+  font-size: 9px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  margin-top: 6px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.badge-ready { background: rgba(196,151,58,0.2); color: var(--gold-light); border: 1px solid rgba(196,151,58,0.3); }
+.badge-soon { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.3); border: 1px solid rgba(255,255,255,0.1); }
+
+.home-footer {
+  text-align: center;
+  margin-top: 40px;
+  position: relative; z-index: 1;
+}
+.home-footer-text {
+  font-size: 11px;
+  color: rgba(255,255,255,0.25);
+  letter-spacing: 1px;
+}
+.home-footer-name {
+  font-size: 12px;
+  color: var(--gold);
+  opacity: 0.7;
+  margin-top: 4px;
+  letter-spacing: 2px;
+}
+
+/* ===== TOOL PAGE ===== */
+.tool-page { display: none; min-height: 100vh; background: var(--bg); }
+
+.tool-header {
+  background: linear-gradient(135deg, var(--navy-dark) 0%, var(--navy-mid) 100%);
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 12px rgba(20,30,61,0.4);
+}
+.back-home {
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 8px;
+  color: rgba(255,255,255,0.7);
+  font-size: 18px;
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0;
+  transition: all 0.15s;
+}
+.back-home:hover { background: rgba(255,255,255,0.18); color: #fff; }
+.tool-header-info { flex: 1; }
+.tool-header-label { font-size: 10px; color: var(--gold); letter-spacing: 2px; opacity: 0.8; }
+.tool-header-title { font-size: 16px; font-weight: 700; color: #fff; }
+.info-btn {
+  background: none; border: none;
+  color: var(--gold-light); font-size: 18px; cursor: pointer; opacity: 0.6;
+  transition: opacity 0.15s;
+}
+.info-btn:hover { opacity: 1; }
+
+.tool-body { padding: 16px; max-width: 700px; margin: 0 auto; }
+
+/* Tabs */
+.tabs {
+  display: flex; gap: 6px; margin-bottom: 18px;
+  background: var(--bg-card);
+  border-radius: 12px; padding: 5px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+.tab {
+  flex: 1; padding: 9px 6px; border-radius: 8px; border: none;
+  font-family: inherit; font-weight: 700; font-size: 13px; cursor: pointer;
+  transition: all 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+}
+.tab.active { background: var(--navy); color: #fff; box-shadow: 0 2px 8px rgba(30,45,90,0.3); }
+.tab.inactive { background: none; color: var(--text-light); }
+.tab.inactive:hover { color: var(--navy); }
+
+/* Section */
+.section {
+  background: var(--bg-card);
+  border-radius: 14px;
+  margin-bottom: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+  border: 1px solid var(--border);
+}
+.section-header {
+  padding: 11px 16px;
+  font-weight: 700;
+  font-size: 13px;
+  display: flex; align-items: center; gap: 7px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(90deg, var(--navy-dark) 0%, var(--navy-mid) 100%);
+  color: #fff;
+  letter-spacing: 0.5px;
+}
+.section-header .gold-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--gold); flex-shrink: 0;
+}
+.section-body { padding: 16px; }
+
+/* Fields */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.full { grid-column: 1 / -1; }
+.field-label {
+  display: block; font-size: 12px; color: var(--text-mid);
+  margin-bottom: 4px; font-weight: 600; letter-spacing: 0.3px;
+}
+input[type="text"], textarea, select {
+  width: 100%; padding: 9px 11px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  font-family: inherit; font-size: 13px;
+  background: #fafbfe;
+  color: var(--text);
+  outline: none;
+  transition: border 0.15s, box-shadow 0.15s;
+}
+input[type="text"]:focus, textarea:focus, select:focus {
+  border-color: var(--navy-light);
+  box-shadow: 0 0 0 3px rgba(61,84,148,0.1);
+}
+textarea { resize: vertical; min-height: 70px; }
+
+/* Toggle buttons */
+.toggle-group { display: flex; gap: 8px; }
+.toggle-btn {
+  flex: 1; padding: 9px 8px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: #fafbfe; color: var(--text-mid);
+  font-family: inherit; font-weight: 700; font-size: 13px;
+  cursor: pointer; transition: all 0.15s;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+}
+.toggle-btn.active {
+  background: var(--navy); color: #fff;
+  border-color: var(--navy);
+  box-shadow: 0 2px 8px rgba(30,45,90,0.25);
+}
+.toggle-btn:not(.active):hover { border-color: var(--navy-light); color: var(--navy); }
+
+/* Currency */
+.cur-group { display: flex; gap: 6px; flex-wrap: wrap; }
+.cur-btn {
+  padding: 5px 11px; border-radius: 6px;
+  border: 1.5px solid var(--border);
+  background: #fafbfe; color: var(--text-mid);
+  font-family: inherit; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: all 0.15s;
+}
+.cur-btn.active {
+  background: var(--gold); color: #fff;
+  border-color: var(--gold);
+  box-shadow: 0 2px 6px rgba(196,151,58,0.3);
+}
+
+/* Policy card */
+.policy-card {
+  background: linear-gradient(135deg, #f8f9fd 0%, #f0f3fa 100%);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  padding: 14px;
+  margin-bottom: 10px;
+}
+.policy-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 12px;
+}
+.policy-num {
+  font-size: 11px; font-weight: 700; color: var(--gold);
+  background: rgba(196,151,58,0.1);
+  border: 1px solid rgba(196,151,58,0.2);
+  padding: 3px 10px; border-radius: 20px;
+  letter-spacing: 1px;
+}
+.remove-btn {
+  background: rgba(192,57,43,0.08); border: 1px solid rgba(192,57,43,0.15);
+  color: var(--accent-red); font-size: 14px; width: 28px; height: 28px;
+  border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.remove-btn:hover { background: rgba(192,57,43,0.15); }
+
+.add-btn {
+  width: 100%; padding: 10px;
+  border-radius: 8px;
+  border: 2px dashed rgba(196,151,58,0.4);
+  background: rgba(196,151,58,0.04);
+  color: var(--gold);
+  font-family: inherit; font-weight: 700; font-size: 13px;
+  cursor: pointer; margin-top: 4px;
+  transition: all 0.15s;
+}
+.add-btn:hover { background: rgba(196,151,58,0.1); border-color: var(--gold); }
+
+.total-bar {
+  background: linear-gradient(135deg, var(--navy-dark), var(--navy-mid));
+  border-radius: 10px; padding: 12px 16px;
+  margin-top: 12px; color: #fff;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.total-bar .label { font-size: 13px; opacity: 0.8; }
+.total-bar .value { font-size: 16px; font-weight: 700; color: var(--gold-light); }
+
+/* Checkbox */
+.checkbox-row {
+  display: flex; align-items: flex-start; gap: 10px;
+  cursor: pointer; font-size: 13px; color: var(--text-mid);
+  padding: 4px 0;
+}
+.checkbox-row input[type="checkbox"] {
+  width: 16px; height: 16px; margin-top: 1px;
+  accent-color: var(--navy); cursor: pointer;
+  flex-shrink: 0;
+}
+.checkbox-row span { line-height: 1.4; }
+
+/* Alert box */
+.alert-box {
+  border-radius: 8px; padding: 10px 13px;
+  font-size: 12px; line-height: 1.6;
+  display: flex; align-items: flex-start; gap: 8px;
+  margin-bottom: 10px;
+}
+.alert-navy { background: rgba(30,45,90,0.06); border: 1px solid rgba(30,45,90,0.15); color: var(--navy-mid); }
+.alert-gold { background: rgba(196,151,58,0.08); border: 1px solid rgba(196,151,58,0.25); color: #7a5c1a; }
+.alert-red { background: rgba(192,57,43,0.06); border: 1px solid rgba(192,57,43,0.2); color: #8b2a20; }
+
+/* Receiver */
+.receiver-section { margin-bottom: 14px; }
+.receiver-title {
+  font-size: 12px; font-weight: 700; color: var(--navy);
+  border-left: 3px solid var(--gold);
+  padding-left: 8px; margin-bottom: 10px;
+}
+
+/* Extra paragraphs */
+.extra-para {
+  background: #f8f9fd; border-radius: 8px;
+  border: 1px solid var(--border);
+  padding: 12px; margin-bottom: 8px;
+  display: flex; gap: 8px; align-items: flex-start;
+}
+.extra-para-num {
+  font-size: 13px; font-weight: 700; color: var(--navy);
+  min-width: 28px; padding-top: 8px;
+}
+.extra-para textarea { margin: 0; }
+.extra-para .remove-btn { margin-top: 6px; }
+
+/* Attach list */
+.attach-col { }
+.attach-col-title {
+  font-size: 12px; font-weight: 700;
+  padding: 6px 10px; border-radius: 6px;
+  margin-bottom: 8px; letter-spacing: 0.5px;
+}
+.attach-inner { background: rgba(30,45,90,0.06); color: var(--navy); }
+.attach-outer { background: rgba(196,151,58,0.1); color: #7a5c1a; }
+.attach-item {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; color: var(--text-mid);
+  padding: 5px 0; border-bottom: 1px solid var(--border);
+}
+.attach-item:last-child { border-bottom: none; }
+.attach-check {
+  width: 16px; height: 16px; border-radius: 4px;
+  border: 1.5px solid var(--navy-light); flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.15s;
+}
+.attach-check.checked {
+  background: var(--navy); border-color: var(--navy);
+  color: #fff; font-size: 10px;
+}
+
+/* Preview */
+.doc-text {
+  font-family: 'Noto Serif TC', serif;
+  font-size: 14px; line-height: 2;
+  white-space: pre-wrap; word-break: break-all;
+  color: var(--text);
+  background: #fafbfe;
+  border-radius: 8px; padding: 16px;
+  border: 1px solid var(--border);
+}
+
+.copy-btn {
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  width: 100%; padding: 11px;
+  border-radius: 8px;
+  border: 1.5px solid var(--gold);
+  background: rgba(196,151,58,0.08);
+  color: var(--gold);
+  font-family: inherit; font-weight: 700; font-size: 14px;
+  cursor: pointer; margin-top: 10px;
+  transition: all 0.15s;
+}
+.copy-btn:hover { background: var(--gold); color: #fff; }
+.copy-btn.copied { background: #27ae60; border-color: #27ae60; color: #fff; }
+
+.internal-note-box {
+  background: rgba(196,151,58,0.06);
+  border: 1.5px solid rgba(196,151,58,0.3);
+  border-radius: 8px; padding: 12px; margin-top: 12px;
+}
+.internal-note-label {
+  font-size: 11px; font-weight: 700; color: var(--gold);
+  letter-spacing: 1px; margin-bottom: 6px;
+}
+
+/* Table */
+.detail-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.detail-table th {
+  background: linear-gradient(135deg, var(--navy-dark), var(--navy-mid));
+  color: #fff; padding: 8px 6px;
+  text-align: center; border: 1px solid var(--navy-mid);
+  font-size: 11px; font-weight: 700;
+}
+.detail-table td {
+  padding: 7px 6px; text-align: center;
+  border: 1px solid var(--border); font-size: 12px;
+}
+.detail-table tr:nth-child(even) td { background: #f8f9fd; }
+.detail-table .total-row td {
+  background: rgba(196,151,58,0.08);
+  font-weight: 700; color: var(--navy);
+  border-color: rgba(196,151,58,0.2);
+}
+.notes-text { margin-top: 10px; font-size: 12px; color: var(--text-mid); line-height: 1.8; }
+
+/* Action buttons */
+.primary-btn {
+  width: 100%; padding: 14px;
+  border-radius: 12px; border: none;
+  background: linear-gradient(135deg, var(--navy-dark), var(--navy-mid));
+  color: #fff; font-family: inherit; font-weight: 700; font-size: 15px;
+  cursor: pointer; margin-bottom: 12px;
+  box-shadow: 0 4px 14px rgba(20,30,61,0.35);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: all 0.2s;
+}
+.primary-btn:hover { box-shadow: 0 6px 20px rgba(20,30,61,0.45); transform: translateY(-1px); }
+
+.secondary-btn {
+  width: 100%; padding: 12px;
+  border-radius: 12px;
+  border: 1.5px solid var(--navy);
+  background: #fff; color: var(--navy);
+  font-family: inherit; font-weight: 700; font-size: 14px;
+  cursor: pointer; margin-bottom: 20px;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+  transition: all 0.15s;
+}
+.secondary-btn:hover { background: var(--bg); }
+
+/* About modal */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6); z-index: 999;
+  align-items: center; justify-content: center;
+  padding: 20px;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: var(--bg-card); border-radius: 16px;
+  padding: 24px; max-width: 340px; width: 100%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  text-align: center;
+}
+.modal-title {
+  font-size: 18px; font-weight: 700; color: var(--navy);
+  margin-bottom: 8px;
+}
+.modal-gold { color: var(--gold); }
+.modal-body { font-size: 13px; color: var(--text-mid); line-height: 1.8; margin-bottom: 16px; }
+.modal-version {
+  font-size: 11px; color: var(--text-light);
+  border-top: 1px solid var(--border); padding-top: 12px;
+}
+.modal-close {
+  background: var(--navy); color: #fff; border: none;
+  border-radius: 8px; padding: 9px 24px;
+  font-family: inherit; font-weight: 700; font-size: 13px;
+  cursor: pointer;
+}
+
+/* Density disclaimer */
+.density-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 10px; padding: 3px 8px; border-radius: 20px;
+  background: rgba(196,151,58,0.1); color: var(--gold);
+  border: 1px solid rgba(196,151,58,0.2);
+  font-weight: 700; letter-spacing: 0.5px;
+}
+
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- ===== HOME PAGE ===== -->
+<div id="home-page">
+  <div class="home">
+    <div class="home-header">
+      <div class="home-logo">Cathay Life · 保全法扣</div>
+      <div class="home-title">法扣案件<br><span>公文套版工具</span></div>
+      <div class="home-divider"></div>
+      <div class="home-sub">選擇情境，快速產出公文</div>
+    </div>
+
+    <div class="situation-label">選擇情境</div>
+
+    <div class="situation-grid">
+      <div class="situation-card" onclick="openTool('解約件')">
+        <div class="sit-icon">📋</div>
+        <div class="sit-title">解約件</div>
+        <div class="sit-sub">解約／含其他給付</div>
+        <div class="sit-badge badge-ready">已完成</div>
+      </div>
+      <div class="situation-card coming-soon">
+        <div class="sit-icon">💰</div>
+        <div class="sit-title">非解約給付</div>
+        <div class="sit-sub">生存險金／滿期金<br>紅利／返還保價</div>
+        <div class="sit-badge badge-soon">開發中</div>
+      </div>
+      <div class="situation-card coming-soon">
+        <div class="sit-icon">⚖️</div>
+        <div class="sit-title">清算件</div>
+        <div class="sit-sub">消費者債務清理</div>
+        <div class="sit-badge badge-soon">開發中</div>
+      </div>
+      <div class="situation-card coming-soon">
+        <div class="sit-icon">🔑</div>
+        <div class="sit-title">介入權</div>
+        <div class="sit-sub">申請／逾時／完成</div>
+        <div class="sit-badge badge-soon">開發中</div>
+      </div>
+      <div class="situation-card coming-soon">
+        <div class="sit-icon">📉</div>
+        <div class="sit-title">縮小保額</div>
+        <div class="sit-sub">部分給付分配</div>
+        <div class="sit-badge badge-soon">開發中</div>
+      </div>
+      <div class="situation-card coming-soon">
+        <div class="sit-icon">📨</div>
+        <div class="sit-title">綜合件</div>
+        <div class="sit-sub">解約＋非解約混合</div>
+        <div class="sit-badge badge-soon">開發中</div>
+      </div>
+    </div>
+
+    <div class="home-footer">
+      <div class="home-footer-text">資料僅在本機處理，不上傳伺服器</div>
+      <div class="home-footer-name">Designed by Miyabi · 2026</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TOOL PAGE ===== -->
+<div id="tool-page" class="tool-page">
+  <div class="tool-header">
+    <button class="back-home" onclick="goHome()">←</button>
+    <div class="tool-header-info">
+      <div class="tool-header-label">法扣案件公文工具</div>
+      <div class="tool-header-title" id="tool-title">解約件</div>
+    </div>
+    <button class="info-btn" onclick="showAbout()">ℹ</button>
+  </div>
+
+  <div class="tool-body">
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" id="tab-form" onclick="switchTab('form')">✏️ 填寫</button>
+      <button class="tab inactive" id="tab-preview" onclick="switchTab('preview')">📄 公文預覽</button>
+      <button class="tab inactive" id="tab-attach" onclick="switchTab('attach')">📁 文件輸出</button>
+    </div>
+
+    <!-- ===== FORM TAB ===== -->
+    <div id="page-form">
+
+      <!-- 密等提醒 -->
+      <div class="alert-box alert-navy">
+        <span>🔒</span>
+        <div><strong>密等提醒：</strong>對內 → <strong>密件＋最速件</strong>｜對外 → <strong>普通</strong></div>
+      </div>
+
+      <!-- 給付方式 -->
+      <div class="section">
+        <div class="section-header"><span class="gold-dot"></span>給付方式</div>
+        <div class="section-body">
+          <div class="toggle-group" style="margin-bottom:14px;">
+            <button class="toggle-btn active" id="btn-remit" onclick="setPayMethod('匯款')">🏦 匯款</button>
+            <button class="toggle-btn" id="btn-check" onclick="setPayMethod('支票')">📝 支票</button>
+          </div>
+
+          <div id="remit-fields" class="grid2">
+            <div>
+              <label class="field-label">匯款日期</label>
+              <input type="text" id="remitDate" placeholder="115年4月13日">
+            </div>
+            <div>
+              <label class="field-label">匯入帳戶／法院專戶</label>
+              <input type="text" id="account" placeholder="臺灣屏東地方法院307乙專戶">
+            </div>
+          </div>
+
+          <div id="check-fields" class="hidden">
+            <div class="grid2">
+              <div>
+                <label class="field-label">開票日期</label>
+                <input type="text" id="checkDate" placeholder="11○年○月○日">
+              </div>
+              <div>
+                <label class="field-label">逕送對象</label>
+                <select id="checkTarget" onchange="toggleCustomTarget()">
+                  <option value="鈞院">鈞院</option>
+                  <option value="鈞署">鈞署</option>
+                  <option value="債權人">債權人</option>
+                  <option value="移送機關">移送機關</option>
+                  <option value="自填">自填...</option>
+                </select>
+              </div>
+            </div>
+            <div id="customTargetField" class="hidden" style="margin-top:10px;">
+              <label class="field-label">自填逕送對象</label>
+              <input type="text" id="customTarget" placeholder="請填入逕送對象">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 案件基本資訊 -->
+      <div class="section">
+        <div class="section-header"><span class="gold-dot"></span>案件基本資訊</div>
+        <div class="section-body grid2">
+          <div class="full">
+            <label class="field-label">法院／署別</label>
+            <select id="courtType" onchange="updateNote3Preview()">
+              <option value="鈞院">鈞院（地方法院）</option>
+              <option value="鈞署">鈞署（行政執行署）</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">命令日期</label>
+            <input type="text" id="courtDate" placeholder="11○年○月○日">
+          </div>
+          <div>
+            <label class="field-label">執行命令字號</label>
+            <input type="text" id="orderNum" placeholder="○○院○○字第○○號">
+          </div>
+          <div class="full">
+            <label class="field-label">債務人姓名</label>
+            <input type="text" id="debtor" placeholder="王大明">
+          </div>
+        </div>
+      </div>
+
+      <!-- 保單明細表 -->
+      <div class="section">
+        <div class="section-header"><span class="gold-dot"></span>保單明細表</div>
+        <div class="section-body">
+          <div id="policies-container"></div>
+          <button class="add-btn" onclick="addPolicy()">＋ 新增保單</button>
+          <div class="total-bar">
+            <span class="label">合計實領金額</span>
+            <span class="value" id="total-display">0 元</span>
+          </div>
+
+          <!-- 分配給付 -->
+          <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border);">
+            <label class="checkbox-row">
+              <input type="checkbox" id="hasDistribution" onchange="toggleDistribution()">
+              <span>有分配給付（部分給債權人，餘款返還債務人）</span>
+            </label>
+            <div id="distribution-fields" class="hidden" style="margin-top:10px;">
+              <div class="grid2">
+                <div>
+                  <label class="field-label">給付債權人金額</label>
+                  <input type="text" id="creditorAmount" placeholder="692,397">
+                </div>
+                <div>
+                  <label class="field-label">返還債務人金額</label>
+                  <input type="text" id="debtorReturn" placeholder="213,803">
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 第三點 -->
+      <div class="section">
+        <div class="section-header"><span class="gold-dot"></span>第三點內容</div>
+        <div class="section-body">
+          <div style="margin-bottom:10px;">
+            <label class="field-label">類型選擇</label>
+            <select id="note3Type" onchange="updateNote3()">
+              <option value="none">（不加入第三點）</option>
+              <option value="no-control-main">依函揭命令說明○未予控管（有說明點）</option>
+              <option value="no-control-title">依函揭命令主旨＋說明○未予控管</option>
+              <option value="cancel">敬請鈞院准予撤銷扣押命令並副知本公司</option>
+              <option value="custom">自填內容</option>
+            </select>
+          </div>
+          <div id="note3-sub-main" class="hidden" style="margin-bottom:10px;">
+            <label class="field-label">說明第幾點</label>
+            <input type="text" id="note3MainNum" placeholder="七" oninput="updateNote3Preview()">
+          </div>
+          <div id="note3-sub-title" class="hidden" style="margin-bottom:10px;">
+            <label class="field-label">說明第幾點</label>
+            <input type="text" id="note3TitleNum" placeholder="六" oninput="updateNote3Preview()">
+          </div>
+          <div id="note3-sub-custom" class="hidden" style="margin-bottom:10px;">
+            <label class="field-label">自填第三點內容</label>
+            <textarea id="note3Custom" placeholder="請填入第三點內容" oninput="updateNote3Preview()"></textarea>
+          </div>
+          <div id="note3-preview" class="hidden">
+            <div class="field-label" style="margin-bottom:6px;">預覽</div>
+            <div id="note3-preview-text" style="font-size:13px; color:var(--navy); background:rgba(30,45,90,0.05); border-radius:6px; padding:10px; line-height:1.8;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 彈性加點 -->
+      <div class="section">
+        <div class="section-header"><span class="gold-dot"></span>彈性加註段落 <span class="density-badge" style="margin-left:auto;">對內外通用</span></div>
+        <div class="section-body">
+          <div class="alert-box alert-gold" style="margin-bottom:12px;">
+            <span>💡</span>
+            <div>可自行新增說明點，例如：總公司加註說明、特殊情況備註等</div>
+          </div>
+          <div id="extra-paras"></div>
+          <button class="add-btn" onclick="addExtraPara()">＋ 新增說明點</button>
+        </div>
+      </div>
+
+      <!-- 對內備註 -->
+      <div class="section">
+        <div class="section-header"><span class="gold-dot"></span>🔒 對內備註 <span class="density-badge" style="margin-left:auto; background:rgba(192,57,43,0.1); color:#c0392b; border-color:rgba(192,57,43,0.2);">僅對內顯示</span></div>
+        <div class="section-body">
+          <textarea id="internalNote" placeholder="例：11○/○/○ 解約，收支票後逕送…（供審核者參考，不出現在對外公文）"></textarea>
+        </div>
+      </div>
+
+      <button class="primary-btn" onclick="switchTab('preview')">📄 查看公文預覽</button>
+    </div>
+
+    <!-- ===== PREVIEW TAB ===== -->
+    <div id="page-preview" class="hidden">
+      <div class="section">
+        <div class="section-header"><span class="gold-dot"></span>公文內文</div>
+        <div class="section-body">
+          <div class="doc-text" id="doc-content"></div>
+          <button class="copy-btn" id="copy-btn" onclick="copyDoc()">📋 一鍵複製公文</button>
+          <div id="internal-note-preview" class="internal-note-box hidden">
+            <div class="internal-note-label">🔒 對內備註</div>
+            <div id="internal-note-text" style="font-size:13px;white-space:pre-wrap;color:var(--text-mid);"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header"><span class="gold-dot"></span>📊 解約金明細表</div>
+        <div class="section-body">
+          <div id="table-title" style="font-weight:700;font-size:14px;margin-bottom:12px;text-align:center;color:var(--navy);"></div>
+          <div style="overflow-x:auto;">
+            <table class="detail-table" id="detail-table"></table>
+          </div>
+          <div class="notes-text" id="detail-notes"></div>
+        </div>
+      </div>
+
+      <button class="secondary-btn" onclick="switchTab('form')">← 返回編輯</button>
+    </div>
+
+    <!-- ===== ATTACH TAB ===== -->
+    <div id="page-attach" class="hidden">
+
+      <!-- 解約金明細表 -->
+      <div class="section">
+        <div class="section-header"><span class="gold-dot"></span>📊 解約金明細表</div>
+        <div class="section-body">
+          <div id="table-title-doc" style="font-weight:700;font-size:14px;margin-bottom:12px;text-align:center;color:var(--navy);"></div>
+          <div style="overflow-x:auto;">
+            <table class="detail-table" id="detail-table-doc"></table>
+          </div>
+          <div class="notes-text" id="detail-notes-doc"></div>
+          <button class="primary-btn" style="margin-top:14px;margin-bottom:0;" onclick="downloadDetailPDF()">⬇️ 下載明細表 PDF</button>
+        </div>
+      </div>
+
+      <!-- 信封填寫 -->
+      <div class="section">
+        <div class="section-header"><span class="gold-dot"></span>✉️ 信封資訊</div>
+        <div class="section-body">
+          <div class="alert-box alert-navy" style="margin-bottom:12px;">
+            <span>ℹ️</span>
+            <div>寄件人、單位、地址為固定內容，僅需填寫收件人與專員資訊</div>
+          </div>
+          <div class="grid2">
+            <div>
+              <label class="field-label">收件人姓名</label>
+              <input type="text" id="env-name" placeholder="王大明">
+            </div>
+            <div>
+              <label class="field-label">稱謂</label>
+              <div class="toggle-group">
+                <button class="toggle-btn active" id="btn-sir" onclick="setTitle('先生')">先生</button>
+                <button class="toggle-btn" id="btn-ms" onclick="setTitle('小姐')">小姐</button>
+              </div>
+            </div>
+            <div>
+              <label class="field-label">收件人郵遞區號</label>
+              <input type="text" id="env-zip" placeholder="○○○">
+            </div>
+            <div></div>
+            <div class="full">
+              <label class="field-label">收件人地址</label>
+              <input type="text" id="env-addr" placeholder="○○縣○○市○○路○號">
+            </div>
+            <div class="full">
+              <label class="field-label">公文字號</label>
+              <input type="text" id="env-docnum" placeholder="9P06230xxxxxxxx（共15碼）">
+            </div>
+            <div>
+              <label class="field-label">專員姓氏</label>
+              <input type="text" id="env-staff" placeholder="○">
+            </div>
+            <div>
+              <label class="field-label">專員分機</label>
+              <input type="text" id="env-ext" placeholder="○○○○○">
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:14px;">
+            <button class="secondary-btn" style="margin-bottom:0;flex:1;" onclick="showEnvPreview()">👁 預覽信封</button>
+            <button class="primary-btn" style="margin-bottom:0;flex:1;" onclick="downloadEnvPDF()">⬇️ 下載信封 PDF</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 附件提醒 -->
+      <div class="section">
+        <div class="section-header"><span class="gold-dot"></span>📎 附件清單提醒</div>
+        <div class="section-body">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+            <div>
+              <div class="attach-col-title attach-inner" style="margin-bottom:10px;">🔒 對內附件</div>
+              <div id="inner-attach-list"></div>
+            </div>
+            <div>
+              <div class="attach-col-title attach-outer" style="margin-bottom:10px;">📤 對外附件</div>
+              <div id="outer-attach-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="secondary-btn" onclick="switchTab('form')">← 返回編輯</button>
+    </div>
+  </div>
+</div>
+
+<!-- 信封預覽 Modal -->
+<div class="modal-overlay" id="env-modal" onclick="closeEnvModal(event)">
+  <div class="modal" style="max-width:420px;padding:0;overflow:hidden;">
+    <div style="background:var(--navy);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;">
+      <span style="color:#fff;font-weight:700;font-size:14px;">✉️ 信封預覽</span>
+      <button onclick="closeEnvModal()" style="background:none;border:none;color:rgba(255,255,255,0.6);font-size:20px;cursor:pointer;">×</button>
+    </div>
+    <!-- 信封預覽區域 244x120mm 比例 -->
+    <div style="padding:16px;background:#f0f2f8;">
+      <div id="env-preview-box" style="
+        width:100%;
+        aspect-ratio:244/120;
+        background:#fff;
+        border:1px solid #ccc;
+        border-radius:4px;
+        position:relative;
+        font-family:'Noto Serif TC',serif;
+        overflow:hidden;
+        box-shadow:0 2px 8px rgba(0,0,0,0.15);
+      ">
+        <!-- 郵票區 左上 -->
+        <div style="position:absolute;top:4%;left:3%;border:1px solid #e05;width:12%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;">
+          <div style="font-size:8px;color:#e05;text-align:center;line-height:1.2;">郵票<br>黏貼</div>
+        </div>
+        <!-- 郵遞區號格 右上 -->
+        <div id="env-zip-boxes" style="position:absolute;top:4%;right:3%;display:flex;gap:2px;"></div>
+        <!-- 收件人 中央偏右 -->
+        <div id="env-receiver-block" style="position:absolute;top:20%;left:35%;right:3%;text-align:center;"></div>
+        <!-- 寄件人 左下 -->
+        <div id="env-sender-block" style="position:absolute;bottom:4%;left:3%;font-size:7px;line-height:1.6;color:#333;"></div>
+        <!-- 公文字號 左下底部 -->
+        <div id="env-docnum-block" style="position:absolute;bottom:4%;left:22%;font-size:7px;color:#e05;"></div>
+      </div>
+      <div style="font-size:11px;color:var(--text-light);text-align:center;margin-top:8px;">※ 預覽為示意圖，實際列印以PDF為準</div>
+    </div>
+    <div style="padding:12px 16px;display:flex;gap:10px;">
+      <button class="secondary-btn" style="margin:0;flex:1;" onclick="closeEnvModal()">關閉</button>
+      <button class="primary-btn" style="margin:0;flex:1;" onclick="downloadEnvPDF()">⬇️ 下載PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- About Modal -->
+<div class="modal-overlay" id="about-modal" onclick="closeAbout(event)">
+  <div class="modal">
+    <div class="modal-title">法扣案件 <span class="modal-gold">公文套版工具</span></div>
+    <div class="modal-body">
+      本工具為保全法扣作業專用<br>
+      所有資料僅在本機瀏覽器處理<br>
+      不上傳任何伺服器，個資安全無虞
+    </div>
+    <div class="modal-version">
+      Designed by <strong>Miyabi</strong> · Version 1.0 · 2026<br>
+      <span style="font-size:10px;color:var(--text-light);">解約件 · 非解約件 · 清算件 · 介入權 · 縮小保額</span>
+    </div>
+    <br>
+    <button class="modal-close" onclick="closeAbout()">關閉</button>
+  </div>
+</div>
+
+<script>
+// ===== STATE =====
+let payMethod = '匯款';
+let policies = [{ name:'', number:'', amount:'', currency:'新臺幣', loan:'0', advance:'0', fee:'250' }];
+let extraParas = [];
+const CURRENCIES = ['新臺幣','美元','澳幣','人民幣'];
+const SYM = {'新臺幣':'元','美元':'美元','澳幣':'澳幣','人民幣':'人民幣'};
+const NUM_ZH = ['','一','二','三','四','五','六','七','八','九','十'];
+
+const INNER_ATTACH = ['總公司照會公文','執行命令','解約明細表','支票影本／公司系統匯款截圖'];
+const OUTER_ATTACH_REMIT = ['解約明細表'];
+const OUTER_ATTACH_CHECK = ['解約明細表','支票影本'];
+
+// ===== NAV =====
+function openTool(name) {
+  document.getElementById('home-page').style.display = 'none';
+  document.getElementById('tool-page').style.display = 'block';
+  document.getElementById('tool-title').textContent = name;
+  renderPolicies();
+  switchTab('form');
+}
+function goHome() {
+  document.getElementById('tool-page').style.display = 'none';
+  document.getElementById('home-page').style.display = 'block';
+}
+function showAbout() { document.getElementById('about-modal').classList.add('show'); }
+function closeAbout(e) {
+  if (!e || e.target === document.getElementById('about-modal'))
+    document.getElementById('about-modal').classList.remove('show');
+}
+
+// ===== TABS =====
+function switchTab(t) {
+  ['form','preview','attach'].forEach(name => {
+    document.getElementById('page-'+name).classList.toggle('hidden', name!==t);
+    document.getElementById('tab-'+name).className = 'tab ' + (name===t?'active':'inactive');
+  });
+  if (t === 'preview') generatePreview();
+  if (t === 'attach') { generateDocTable(); renderAttach(); }
+}
+
+// ===== PAY METHOD =====
+function setPayMethod(m) {
+  payMethod = m;
+  document.getElementById('btn-remit').className = 'toggle-btn' + (m==='匯款'?' active':'');
+  document.getElementById('btn-check').className = 'toggle-btn' + (m==='支票'?' active':'');
+  document.getElementById('remit-fields').classList.toggle('hidden', m!=='匯款');
+  document.getElementById('check-fields').classList.toggle('hidden', m!=='支票');
+}
+function toggleCustomTarget() {
+  const v = document.getElementById('checkTarget').value;
+  document.getElementById('customTargetField').classList.toggle('hidden', v !== '自填');
+}
+
+// ===== HELPERS =====
+function toNum(v) { return parseFloat((v||'0').replace(/,/g,'')) || 0; }
+function fmtNum(n) { return isNaN(n) ? '-' : n.toLocaleString('zh-TW'); }
+function calcActual(p) { return toNum(p.amount) - toNum(p.loan) - toNum(p.advance) - toNum(p.fee); }
+function toZhNum(n) { return n <= 10 ? NUM_ZH[n] : n; }
+
+function validatePolicyNum(el) {
+  const v = el.value;
+  if (v.length > 0 && v.length !== 10) {
+    el.style.borderColor = '#e05';
+    el.style.background = '#fff5f5';
+  } else {
+    el.style.borderColor = '';
+    el.style.background = '';
+  }
+}
+
+// ===== POLICIES =====
+function setCurrency(idx, cur) {
+  policies[idx].currency = cur;
+  renderPolicies();
+}
+function updatePolicyField(idx, field, val) {
+  policies[idx][field] = val;
+  updateTotal();
+}
+function updateTotal() {
+  const total = policies.reduce((s,p) => s + calcActual(p), 0);
+  const mixed = new Set(policies.map(p=>p.currency)).size > 1;
+  const sym = mixed ? '（多幣別）' : (SYM[policies[0]?.currency]||'元');
+  document.getElementById('total-display').textContent = fmtNum(total) + ' ' + sym;
+}
+function renderPolicies() {
+  const c = document.getElementById('policies-container');
+  c.innerHTML = '';
+  policies.forEach((p, i) => {
+    const div = document.createElement('div');
+    div.className = 'policy-card';
+    div.innerHTML = `
+      <div class="policy-header">
+        <span class="policy-num">保單 ${i+1}</span>
+        ${policies.length > 1 ? `<button class="remove-btn" onclick="removePolicy(${i})">✕</button>` : ''}
+      </div>
+      <div class="grid2">
+        <div>
+          <label class="field-label">險別名稱</label>
+          <input type="text" value="${p.name}" placeholder="○○終身壽險" oninput="updatePolicyField(${i},'name',this.value)" style="width:100%">
+        </div>
+        <div>
+          <label class="field-label">保單號碼 <span style="font-size:10px;color:var(--text-light);">（須10碼）</span></label>
+          <input type="text" value="${p.number}" placeholder="○○○○○○○○○○" maxlength="10"
+            oninput="updatePolicyField(${i},'number',this.value); validatePolicyNum(this);"
+            style="width:100%;${p.number && p.number.length !== 10 ? 'border-color:#e05;background:#fff5f5;' : ''}">
+        </div>
+        <div>
+          <label class="field-label">解約金</label>
+          <input type="text" value="${p.amount}" placeholder="○○○,○○○" oninput="updatePolicyField(${i},'amount',this.value)" style="width:100%">
+        </div>
+        <div>
+          <label class="field-label">幣別</label>
+          <div class="cur-group">${CURRENCIES.map(c=>`<button class="cur-btn${p.currency===c?' active':''}" onclick="setCurrency(${i},'${c}')">${c}</button>`).join('')}</div>
+        </div>
+        <div>
+          <label class="field-label">（扣）保單借款本息</label>
+          <input type="text" value="${p.loan}" placeholder="0" oninput="updatePolicyField(${i},'loan',this.value)" style="width:100%">
+        </div>
+        <div>
+          <label class="field-label">（扣）墊繳保費本息</label>
+          <input type="text" value="${p.advance}" placeholder="0" oninput="updatePolicyField(${i},'advance',this.value)" style="width:100%">
+        </div>
+        <div class="full">
+          <label class="field-label">手續費</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input type="text" value="${p.fee}" placeholder="${p.currency==='新臺幣'?'250':''}" oninput="updatePolicyField(${i},'fee',this.value)" style="width:100px">
+            <span style="font-size:13px;color:var(--text-mid);">${SYM[p.currency]||'元'}</span>
+          </div>
+        </div>
+      </div>`;
+    c.appendChild(div);
+  });
+  updateTotal();
+}
+function addPolicy() {
+  policies.push({ name:'', number:'', amount:'', currency:'新臺幣', loan:'0', advance:'0', fee:'250' });
+  renderPolicies();
+}
+function removePolicy(idx) { policies.splice(idx,1); renderPolicies(); }
+
+// ===== DISTRIBUTION =====
+function toggleDistribution() {
+  document.getElementById('distribution-fields').classList.toggle('hidden', !document.getElementById('hasDistribution').checked);
+}
+
+// ===== NOTE3 =====
+function updateNote3() {
+  const t = document.getElementById('note3Type').value;
+  document.getElementById('note3-sub-main').classList.toggle('hidden', t !== 'no-control-main');
+  document.getElementById('note3-sub-title').classList.toggle('hidden', t !== 'no-control-title');
+  document.getElementById('note3-sub-custom').classList.toggle('hidden', t !== 'custom');
+  document.getElementById('note3-preview').classList.toggle('hidden', t === 'none');
+  updateNote3Preview();
+}
+function updateNote3Preview() {
+  const t = document.getElementById('note3Type').value;
+  const ct = document.getElementById('courtType')?.value || '鈞院';
+  let text = '';
+  if (t === 'no-control-main') {
+    const num = document.getElementById('note3MainNum').value || '○';
+    text = `三、本公司依函揭命令說明${num}未予控管前揭保險契約，併予敘明。`;
+  } else if (t === 'no-control-title') {
+    const num = document.getElementById('note3TitleNum').value || '○';
+    text = `三、本公司依函揭命令主旨及說明${num}未予控管前揭保險契約，併予敘明。`;
+  } else if (t === 'cancel') {
+    text = `三、敬請${ct}准予撤銷本件扣押命令並副知本公司，實感德便。`;
+  } else if (t === 'custom') {
+    text = `三、${document.getElementById('note3Custom').value || '（請填入內容）'}`;
+  }
+  document.getElementById('note3-preview-text').textContent = text;
+  // 也更新下拉選單顯示文字
+  const opt = document.querySelector('#note3Type option[value="cancel"]');
+  if (opt) opt.textContent = `敬請${ct}准予撤銷扣押命令並副知本公司`;
+}
+
+// ===== EXTRA PARAS =====
+let extraParaCount = 0;
+function addExtraPara() {
+  extraParaCount++;
+  const id = 'extra-'+extraParaCount;
+  extraParas.push({ id, text:'' });
+  renderExtraParas();
+}
+function removeExtraPara(id) {
+  extraParas = extraParas.filter(p => p.id !== id);
+  renderExtraParas();
+}
+function renderExtraParas() {
+  const c = document.getElementById('extra-paras');
+  c.innerHTML = '';
+  const note3Type = document.getElementById('note3Type').value;
+  const baseNum = note3Type !== 'none' ? 4 : 3;
+  extraParas.forEach((p, i) => {
+    const num = toZhNum(baseNum + i);
+    const div = document.createElement('div');
+    div.className = 'extra-para';
+    div.innerHTML = `
+      <div class="extra-para-num">${num}、</div>
+      <textarea placeholder="填入說明內容…" oninput="updateExtraPara('${p.id}',this.value)" style="flex:1;margin:0;">${p.text}</textarea>
+      <button class="remove-btn" onclick="removeExtraPara('${p.id}')" style="margin-top:0;">✕</button>`;
+    c.appendChild(div);
+  });
+}
+function updateExtraPara(id, val) {
+  const p = extraParas.find(x => x.id === id);
+  if (p) p.text = val;
+}
+
+// ===== ATTACH (純提醒) =====
+function renderAttach() {
+  const payIsCheck = payMethod === '支票';
+  const outerList = payIsCheck ? OUTER_ATTACH_CHECK : OUTER_ATTACH_REMIT;
+
+  const renderList = (items, containerId) => {
+    const c = document.getElementById(containerId);
+    if (!c) return;
+    c.innerHTML = '';
+    items.forEach(item => {
+      const div = document.createElement('div');
+      div.className = 'attach-item';
+      div.innerHTML = `<span style="color:var(--gold);margin-right:4px;">▸</span><span>${item}</span>`;
+      c.appendChild(div);
+    });
+  };
+  renderList(INNER_ATTACH, 'inner-attach-list');
+  renderList(outerList, 'outer-attach-list');
+}
+
+// ===== GENERATE DOC TABLE (for 文件輸出頁) =====
+function generateDocTable() {
+  const debtor = document.getElementById('debtor').value || '○○';
+  const hasDistribution = document.getElementById('hasDistribution').checked;
+  const creditorAmt = document.getElementById('creditorAmount').value || '○';
+  const debtorRet = document.getElementById('debtorReturn').value || '○';
+  const total = policies.reduce((s,p) => s + calcActual(p), 0);
+  const hasMixed = new Set(policies.map(p=>p.currency)).size > 1;
+
+  document.getElementById('table-title-doc').textContent = debtor + '保險解約金明細表';
+
+  let thead = '<tr><th>序號</th><th>險別（保單號碼）</th>';
+  if (hasMixed) thead += '<th>幣別</th>';
+  thead += '<th>解約金（含紅利、未到期保費）</th><th>（扣）保單借款本息</th><th>（扣）墊繳保費本息</th><th>實領金額</th></tr>';
+
+  let tbody = '';
+  policies.forEach((p, i) => {
+    const act = calcActual(p);
+    tbody += `<tr>
+      <td>${i+1}</td>
+      <td>${p.name||'—'}<br><span style="color:#888;font-size:10px;">（${p.number||'—'}）</span></td>
+      ${hasMixed?`<td>${p.currency}</td>`:''}
+      <td style="text-align:right">${p.amount||'0'}</td>
+      <td style="text-align:right">${p.loan||'0'}</td>
+      <td style="text-align:right">${p.advance||'0'}</td>
+      <td style="text-align:right;font-weight:700">${fmtNum(act)}</td>
+    </tr>`;
+  });
+  const cs = hasMixed ? 4 : 3;
+  tbody += `<tr class="total-row"><td colspan="${cs}" style="text-align:center">合計金額</td><td colspan="3" style="text-align:right">${fmtNum(total)}</td></tr>`;
+  document.getElementById('detail-table-doc').innerHTML = thead + tbody;
+
+  let notes = ''; let ni = 1;
+  policies.forEach(p => {
+    if (p.fee && p.fee !== '0') {
+      notes += `註${ni}：保單號碼${p.number||'○○'}另扣除手續費${p.fee}${SYM[p.currency]||'元'}。<br>`;
+      ni++;
+    }
+  });
+  if (hasDistribution) {
+    notes += `註${ni}：解約金金額${creditorAmt}元給付債權人，餘額${debtorRet}元返還債務人。`;
+  }
+  document.getElementById('detail-notes-doc').innerHTML = notes;
+
+  // 同步信封收件人姓名
+  const envName = document.getElementById('env-name');
+  if (envName && !envName.value) envName.placeholder = debtor;
+}
+
+// ===== PREVIEW =====
+function generatePreview() {
+  const debtor = document.getElementById('debtor').value || '○○';
+  const debtorSurname = debtor.charAt(0);
+  const courtDate = document.getElementById('courtDate').value || '○年○月○日';
+  const orderNum = document.getElementById('orderNum').value || '○○執行命令字號';
+  const courtType = document.getElementById('courtType').value || '鈞院';
+  const internalNote = document.getElementById('internalNote').value || '';
+  const hasDistribution = document.getElementById('hasDistribution').checked;
+  const creditorAmt = document.getElementById('creditorAmount').value || '○';
+  const debtorRet = document.getElementById('debtorReturn').value || '○';
+
+  const total = policies.reduce((s,p) => s + calcActual(p), 0);
+  const mixed = new Set(policies.map(p=>p.currency)).size > 1;
+  const mainCur = mixed ? '' : (policies[0]?.currency||'新臺幣');
+  const sym = mixed ? '' : (SYM[policies[0]?.currency]||'元');
+  const totalStr = fmtNum(total);
+
+  // 主旨（完整姓名）
+  const subject = `有關終止債務人／義務人${debtor}君（下稱${debtorSurname}君）保險契約執行乙事，詳如說明，請查照。`;
+
+  // 手續費說明（合併所有保單）
+  const feeDesc = (() => {
+    const fees = policies.filter(p => p.fee && p.fee !== '0');
+    if (fees.length === 0) return '已扣除手續費';
+    if (fees.length === 1) return `已扣除手續費${fees[0].fee}${SYM[fees[0].currency]||'元'}`;
+    return '已扣除手續費（詳附件）';
+  })();
+
+  // 第二點
+  let para2 = '';
+  if (payMethod === '匯款') {
+    const remitDate = document.getElementById('remitDate').value || '○年○月○日';
+    const account = document.getElementById('account').value || '○○法院○○○專戶';
+    para2 = `二、查本公司已依前揭執行命令終止以${debtorSurname}君為要保人之保險契約，解約金合計為${mainCur}${totalStr}${sym}（明細請詳附件，金額以作業當日為準，${feeDesc}），並於${remitDate}匯款${totalStr}${sym}於${account}。`;
+  } else {
+    const checkDate = document.getElementById('checkDate').value || '○年○月○日';
+    const targetSel = document.getElementById('checkTarget').value;
+    const target = targetSel === '自填' ? (document.getElementById('customTarget').value || '○○') : targetSel;
+    para2 = `二、查本公司已依前揭執行命令終止以${debtorSurname}君為要保人之保險契約，解約金合計為${mainCur}${totalStr}${sym}（明細請詳附件，金額以作業當日為準，${feeDesc}），並於${checkDate}開立支票${totalStr}${sym}（影本如附件）逕送${target}。`;
+  }
+  if (hasDistribution) {
+    para2 += `另解約金${creditorAmt}${sym}給付債權人，餘額${debtorRet}${sym}返還債務人。`;
+  }
+
+  // 第三點
+  const note3Type = document.getElementById('note3Type').value;
+  let para3 = '';
+  if (note3Type !== 'none') {
+    if (note3Type === 'no-control-main') {
+      const num = document.getElementById('note3MainNum').value || '○';
+      para3 = `三、本公司依函揭命令說明${num}未予控管前揭保險契約，併予敘明。`;
+    } else if (note3Type === 'no-control-title') {
+      const num = document.getElementById('note3TitleNum').value || '○';
+      para3 = `三、本公司依函揭命令主旨及說明${num}未予控管前揭保險契約，併予敘明。`;
+    } else if (note3Type === 'cancel') {
+      para3 = `三、敬請${courtType}准予撤銷本件扣押命令並副知本公司，實感德便。`;
+    } else if (note3Type === 'custom') {
+      para3 = `三、${document.getElementById('note3Custom').value||'（請填入內容）'}`;
+    }
+  }
+
+  // 彈性加點（國字編號）
+  const baseNum = note3Type !== 'none' ? 4 : 3;
+  const extraText = extraParas.map((p, i) => `${toZhNum(baseNum+i)}、${p.text||'（請填入內容）'}`).join('\n');
+
+  // 主旨+說明（複製用）
+  const copyText = `主旨：${subject}\n\n說明：\n\n一、依${courtType}${courtDate}${orderNum}執行命令辦理。\n${para2}${para3 ? '\n' + para3 : ''}${extraText ? '\n' + extraText : ''}`;
+
+  document.getElementById('doc-content').textContent = copyText;
+  document.getElementById('doc-content').dataset.copyText = copyText;
+
+  // 對內備註
+  if (internalNote) {
+    document.getElementById('internal-note-preview').classList.remove('hidden');
+    document.getElementById('internal-note-text').textContent = internalNote;
+  } else {
+    document.getElementById('internal-note-preview').classList.add('hidden');
+  }
+
+  // 明細表（預覽頁）
+  document.getElementById('table-title').textContent = debtor + '保險解約金明細表';
+  const hasMixed = new Set(policies.map(p=>p.currency)).size > 1;
+  let thead = '<tr><th>序號</th><th>險別（保單號碼）</th>';
+  if (hasMixed) thead += '<th>幣別</th>';
+  thead += '<th>解約金（含紅利、未到期保費）</th><th>（扣）保單借款本息</th><th>（扣）墊繳保費本息</th><th>實領金額</th></tr>';
+
+  let tbody = '';
+  policies.forEach((p, i) => {
+    const act = calcActual(p);
+    tbody += `<tr>
+      <td>${i+1}</td>
+      <td>${p.name||'—'}<br><span style="color:#888;font-size:10px;">（${p.number||'—'}）</span></td>
+      ${hasMixed?`<td>${p.currency}</td>`:''}
+      <td style="text-align:right">${p.amount||'0'}</td>
+      <td style="text-align:right">${p.loan||'0'}</td>
+      <td style="text-align:right">${p.advance||'0'}</td>
+      <td style="text-align:right;font-weight:700">${fmtNum(act)}</td>
+    </tr>`;
+  });
+  const cs = hasMixed ? 4 : 3;
+  tbody += `<tr class="total-row"><td colspan="${cs}" style="text-align:center">合計金額</td><td colspan="3" style="text-align:right">${fmtNum(total)}</td></tr>`;
+  document.getElementById('detail-table').innerHTML = thead + tbody;
+
+  let notes = ''; let ni = 1;
+  policies.forEach(p => {
+    if (p.fee && p.fee !== '0') {
+      notes += `註${ni}：保單號碼${p.number||'○○'}另扣除手續費${p.fee}${SYM[p.currency]||'元'}。<br>`;
+      ni++;
+    }
+  });
+  if (hasDistribution) {
+    notes += `註${ni}：解約金金額${creditorAmt}元給付債權人，餘額${debtorRet}元返還債務人。`;
+  }
+  document.getElementById('detail-notes').innerHTML = notes;
+}
+
+// ===== COPY（只複製主旨+說明）=====
+function copyDoc() {
+  const text = document.getElementById('doc-content').dataset.copyText ||
+               document.getElementById('doc-content').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = '✅ 已複製！';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.innerHTML = '📋 一鍵複製公文';
+      btn.classList.remove('copied');
+    }, 2000);
+  }).catch(() => {
+    const range = document.createRange();
+    range.selectNode(document.getElementById('doc-content'));
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+    document.execCommand('copy');
+    window.getSelection().removeAllRanges();
+  });
+}
+
+// ===== ENVELOPE TITLE =====
+let envTitle = '先生';
+function setTitle(t) {
+  envTitle = t;
+  document.getElementById('btn-sir').className = 'toggle-btn' + (t==='先生'?' active':'');
+  document.getElementById('btn-ms').className = 'toggle-btn' + (t==='小姐'?' active':'');
+}
+
+// ===== ENVELOPE PREVIEW =====
+function showEnvPreview() {
+  const name = document.getElementById('env-name').value || '○○';
+  const zip = document.getElementById('env-zip').value || '000';
+  const addr = document.getElementById('env-addr').value || '○○縣○○市○○路○號';
+  const docnum = document.getElementById('env-docnum').value || '9P06230xxxxxxxx';
+  const staff = document.getElementById('env-staff').value || '○';
+  const ext = document.getElementById('env-ext').value || '○○○○○';
+
+  // 郵遞區號格子
+  const zipBoxes = document.getElementById('env-zip-boxes');
+  zipBoxes.innerHTML = '';
+  const zipStr = zip.padEnd(6, ' ');
+  for (let i = 0; i < 6; i++) {
+    const box = document.createElement('div');
+    box.style.cssText = 'width:14px;height:14px;border:1px solid #e05;display:flex;align-items:center;justify-content:center;font-size:9px;color:#333;';
+    box.textContent = zipStr[i] || '';
+    zipBoxes.appendChild(box);
+  }
+
+  // 收件人
+  document.getElementById('env-receiver-block').innerHTML = `
+    <div style="font-size:22px;font-weight:700;color:#111;writing-mode:vertical-rl;display:inline-block;line-height:1.4;">${addr}</div>
+    <div style="font-size:26px;font-weight:700;margin-top:6px;">${name}　${envTitle}　收</div>
+  `;
+
+  // 寄件人
+  document.getElementById('env-sender-block').innerHTML = `
+    高雄保全作業科高雄保全組<br>
+    ${staff}小姐（分機${ext}）<br>
+    高雄市前金區中華三路108號3樓
+  `;
+
+  // 公文字號
+  document.getElementById('env-docnum-block').innerHTML = docnum;
+
+  document.getElementById('env-modal').classList.add('show');
+}
+
+function closeEnvModal(e) {
+  if (!e || e.target === document.getElementById('env-modal'))
+    document.getElementById('env-modal').classList.remove('show');
+}
+
+// ===== LOAD jsPDF =====
+function loadJsPDF() {
+  return new Promise((resolve, reject) => {
+    if (window.jspdf) { resolve(window.jspdf.jsPDF); return; }
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    s.onload = () => resolve(window.jspdf.jsPDF);
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+function loadJsPDFAutoTable() {
+  return new Promise((resolve, reject) => {
+    if (window.jspdf?.jsPDF?.prototype?.autoTable) { resolve(); return; }
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js';
+    s.onload = () => resolve();
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+// ===== DOWNLOAD DETAIL PDF =====
+async function downloadDetailPDF() {
+  const btn = event.target;
+  btn.textContent = '⏳ 產生中...';
+  btn.disabled = true;
+  try {
+    const JsPDF = await loadJsPDF();
+    await loadJsPDFAutoTable();
+    const debtor = document.getElementById('debtor').value || '○○';
+    const hasDistribution = document.getElementById('hasDistribution').checked;
+    const creditorAmt = document.getElementById('creditorAmount').value || '○';
+    const debtorRet = document.getElementById('debtorReturn').value || '○';
+    const total = policies.reduce((s,p) => s + calcActual(p), 0);
+    const hasMixed = new Set(policies.map(p=>p.currency)).size > 1;
+
+    const doc = new JsPDF({ orientation:'landscape', unit:'mm', format:'a4' });
+
+    // 標題
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(14);
+    doc.text('附件：', 14, 18);
+    doc.setFontSize(13);
+    doc.text(debtor + '保險解約金明細表', 148, 26, { align:'center' });
+
+    // 表格欄位
+    const head = [['序號','險別（保單號碼）', ...(hasMixed?['幣別']:[]), '解約金（含紅利、未到期保費）','（扣）保單借款本息','（扣）墊繳保費本息','實領金額']];
+    const body = policies.map((p,i) => [
+      i+1,
+      `${p.name||'—'}\n（${p.number||'—'}）`,
+      ...(hasMixed?[p.currency]:[]),
+      p.amount||'0',
+      p.loan||'0',
+      p.advance||'0',
+      fmtNum(calcActual(p))
+    ]);
+    const cs = hasMixed ? 4 : 3;
+    body.push([{ content:'合計金額', colSpan: cs, styles:{halign:'center',fontStyle:'bold'} }, '', '', fmtNum(total)]);
+
+    doc.autoTable({
+      head, body,
+      startY: 30,
+      styles: { font:'helvetica', fontSize:9, cellPadding:3 },
+      headStyles: { fillColor:[30,45,90], textColor:255, fontStyle:'bold' },
+      alternateRowStyles: { fillColor:[240,242,248] },
+      columnStyles: { 0:{halign:'center',cellWidth:12}, 1:{cellWidth:50} }
+    });
+
+    // 附註
+    let noteY = doc.lastAutoTable.finalY + 6;
+    doc.setFontSize(9); doc.setFont('helvetica','normal');
+    let ni = 1;
+    policies.forEach(p => {
+      if (p.fee && p.fee !== '0') {
+        doc.text(`註${ni}：保單號碼${p.number||'○○'}另扣除手續費${p.fee}${SYM[p.currency]||'元'}。`, 14, noteY);
+        noteY += 5; ni++;
+      }
+    });
+    if (hasDistribution) {
+      doc.text(`註${ni}：解約金金額${creditorAmt}元給付債權人，餘額${debtorRet}元返還債務人。`, 14, noteY);
+    }
+
+    doc.save(debtor + '保險解約金明細表.pdf');
+  } catch(e) {
+    alert('PDF產生失敗，請確認網路連線後再試。');
+  }
+  btn.textContent = '⬇️ 下載明細表 PDF';
+  btn.disabled = false;
+}
+
+// ===== DOWNLOAD ENVELOPE PDF =====
+async function downloadEnvPDF() {
+  const btn = event.target;
+  const origText = btn.textContent;
+  btn.textContent = '⏳ 產生中...';
+  btn.disabled = true;
+  try {
+    const JsPDF = await loadJsPDF();
+    const name = document.getElementById('env-name').value || '○○';
+    const zip = document.getElementById('env-zip').value || '000000';
+    const addr = document.getElementById('env-addr').value || '○○縣○○市○○路○號';
+    const docnum = document.getElementById('env-docnum').value || '9P06230xxxxxxxx';
+    const staff = document.getElementById('env-staff').value || '○';
+    const ext = document.getElementById('env-ext').value || '○○○○○';
+
+    // 244x120mm 橫式信封
+    const doc = new JsPDF({ orientation:'landscape', unit:'mm', format:[244,120] });
+
+    // 郵票框 左上
+    doc.setDrawColor(220,0,80);
+    doc.rect(6, 6, 22, 22);
+    doc.setFontSize(7); doc.setTextColor(220,0,80);
+    doc.text('郵票', 17, 13, {align:'center'});
+    doc.text('黏貼', 17, 18, {align:'center'});
+
+    // 郵遞區號格 右上
+    doc.setTextColor(220,0,80);
+    const zipDigits = zip.replace(/\D/g,'').padEnd(6,' ');
+    for (let i=0; i<6; i++) {
+      doc.rect(210 + i*5, 6, 4.5, 6);
+      doc.setFontSize(8);
+      doc.text(zipDigits[i]||'', 212.2 + i*5, 11);
+    }
+
+    // 收件人地址（直書）— 用橫書模擬，逐字換行
+    doc.setTextColor(20,30,60);
+    doc.setFontSize(11);
+    const addrChars = addr.split('');
+    let ax = 155, ay = 18;
+    addrChars.forEach((ch,i) => {
+      doc.text(ch, ax, ay + i*7);
+      if (ay + (i+1)*7 > 105) { ax -= 12; ay = 18 - (i+1)*7; }
+    });
+
+    // 收件人姓名
+    doc.setFontSize(16); doc.setFont('helvetica','bold');
+    const receiverX = 100;
+    doc.text(name + '　' + envTitle + '　收', receiverX, 90, {align:'center'});
+
+    // 寄件人 左下
+    doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(60,60,60);
+    doc.text('高雄保全作業科高雄保全組', 6, 80);
+    doc.text(`${staff}小姐（分機${ext}）`, 6, 86);
+    doc.text('高雄市前金區中華三路108號3樓', 6, 92);
+
+    // 公文字號
+    doc.setTextColor(220,0,80); doc.setFontSize(8);
+    doc.text(docnum, 6, 100);
+
+    doc.save(name + '_信封.pdf');
+  } catch(e) {
+    alert('PDF產生失敗，請確認網路連線後再試。');
+  }
+  btn.textContent = origText;
+  btn.disabled = false;
+}
+
+// Init
+renderPolicies();
+</script>
+</body>
+</html>
