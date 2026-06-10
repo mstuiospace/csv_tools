@@ -546,7 +546,7 @@ textarea { resize: vertical; min-height: 70px; }
 <div id="home-page">
   <div class="home">
     <div class="home-header">
-      <div class="home-logo">Cathay Life · 保全法扣</div>
+      <div class="home-logo">保全法扣 · 公文套版工具</div>
       <div class="home-title">法扣案件<br><span>公文套版工具</span></div>
       <div class="home-divider"></div>
       <div class="home-sub">選擇情境，快速產出公文</div>
@@ -795,7 +795,10 @@ textarea { resize: vertical; min-height: 70px; }
         <div class="section-header"><span class="gold-dot"></span>公文內文</div>
         <div class="section-body">
           <div class="doc-text" id="doc-content"></div>
-          <button class="copy-btn" id="copy-btn" onclick="copyDoc()">📋 一鍵複製公文</button>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button class="copy-btn" id="copy-btn" onclick="copyDoc()" style="flex:1;">📋 複製純文字</button>
+            <button class="copy-btn" id="word-btn" onclick="downloadWordDoc()" style="flex:1;background:rgba(30,45,90,0.08);border-color:var(--navy);color:var(--navy);">📝 產出 Word 檔</button>
+          </div>
           <div id="internal-note-preview" class="internal-note-box hidden">
             <div class="internal-note-label">🔒 對內備註</div>
             <div id="internal-note-text" style="font-size:13px;white-space:pre-wrap;color:var(--text-mid);"></div>
@@ -811,6 +814,7 @@ textarea { resize: vertical; min-height: 70px; }
             <table class="detail-table" id="detail-table"></table>
           </div>
           <div class="notes-text" id="detail-notes"></div>
+          <button class="primary-btn" style="margin-top:12px;margin-bottom:0;" onclick="printDetail()">🖨️ 列印明細表</button>
         </div>
       </div>
 
@@ -877,7 +881,7 @@ textarea { resize: vertical; min-height: 70px; }
           </div>
           <div style="display:flex;gap:10px;margin-top:14px;">
             <button class="secondary-btn" style="margin-bottom:0;flex:1;" onclick="showEnvPreview()">👁 預覽信封</button>
-            <button class="primary-btn" style="margin-bottom:0;flex:1;" onclick="downloadEnvPDF()">⬇️ 下載信封 PDF</button>
+            <button class="primary-btn" style="margin-bottom:0;flex:1;" onclick="printEnvelope()">🖨️ 列印信封</button>
           </div>
         </div>
       </div>
@@ -911,11 +915,11 @@ textarea { resize: vertical; min-height: 70px; }
       <span style="color:#fff;font-weight:700;font-size:14px;">✉️ 信封預覽</span>
       <button onclick="closeEnvModal()" style="background:none;border:none;color:rgba(255,255,255,0.6);font-size:20px;cursor:pointer;">×</button>
     </div>
-    <!-- 信封預覽區域 244x120mm 比例 -->
-    <div style="padding:16px;background:#f0f2f8;">
+    <!-- 信封預覽區域 直式 120x244mm -->
+    <div style="padding:16px;background:#f0f2f8;overflow-y:auto;">
       <div id="env-preview-box" style="
-        width:100%;
-        aspect-ratio:244/120;
+        width:200px;
+        height:408px;
         background:#fff;
         border:1px solid #ccc;
         border-radius:4px;
@@ -923,25 +927,29 @@ textarea { resize: vertical; min-height: 70px; }
         font-family:'Noto Serif TC',serif;
         overflow:hidden;
         box-shadow:0 2px 8px rgba(0,0,0,0.15);
+        margin:0 auto;
       ">
         <!-- 郵票區 左上 -->
-        <div style="position:absolute;top:4%;left:3%;border:1px solid #e05;width:12%;aspect-ratio:1;display:flex;align-items:center;justify-content:center;">
-          <div style="font-size:8px;color:#e05;text-align:center;line-height:1.2;">郵票<br>黏貼</div>
+        <div style="position:absolute;top:8px;left:8px;border:1.5px solid #e05;width:34px;height:34px;display:flex;align-items:center;justify-content:center;flex-direction:column;">
+          <div style="font-size:7px;color:#e05;line-height:1.3;text-align:center;">郵票<br>黏貼</div>
         </div>
-        <!-- 郵遞區號格 右上 -->
-        <div id="env-zip-boxes" style="position:absolute;top:4%;right:3%;display:flex;gap:2px;"></div>
-        <!-- 收件人 中央偏右 -->
-        <div id="env-receiver-block" style="position:absolute;top:20%;left:35%;right:3%;text-align:center;"></div>
-        <!-- 寄件人 左下 -->
-        <div id="env-sender-block" style="position:absolute;bottom:4%;left:3%;font-size:7px;line-height:1.6;color:#333;"></div>
-        <!-- 公文字號 左下底部 -->
-        <div id="env-docnum-block" style="position:absolute;bottom:4%;left:22%;font-size:7px;color:#e05;"></div>
+        <!-- 郵遞區號 右上橫排 -->
+        <div id="env-zip-boxes" style="position:absolute;top:8px;right:8px;display:flex;flex-direction:row;gap:2px;"></div>
+        <!-- 收件人地址 右側直書 -->
+        <div id="env-addr-block" style="position:absolute;top:55px;right:10px;writing-mode:vertical-rl;font-size:11px;line-height:1.5;color:#111;max-height:230px;overflow:hidden;"></div>
+        <!-- 收件人姓名 中間直書 -->
+        <div id="env-name-block" style="position:absolute;top:80px;left:50%;transform:translateX(-50%);writing-mode:vertical-rl;font-size:15px;font-weight:700;white-space:nowrap;letter-spacing:4px;"></div>
+        <!-- 寄件人資訊 左下角 -->
+        <div style="position:absolute;bottom:8px;left:8px;display:flex;flex-direction:row;gap:4px;align-items:flex-end;">
+          <div id="env-sender-block" style="writing-mode:vertical-rl;font-size:6.5px;line-height:1.6;color:#444;max-height:120px;overflow:hidden;"></div>
+          <div id="env-docnum-block" style="writing-mode:vertical-rl;font-size:6.5px;color:#e05;max-height:80px;overflow:hidden;"></div>
+        </div>
       </div>
-      <div style="font-size:11px;color:var(--text-light);text-align:center;margin-top:8px;">※ 預覽為示意圖，實際列印以PDF為準</div>
+      <div style="font-size:11px;color:var(--text-light);text-align:center;margin-top:8px;">※ 預覽為示意圖，實際列印以列印功能為準</div>
     </div>
     <div style="padding:12px 16px;display:flex;gap:10px;">
       <button class="secondary-btn" style="margin:0;flex:1;" onclick="closeEnvModal()">關閉</button>
-      <button class="primary-btn" style="margin:0;flex:1;" onclick="downloadEnvPDF()">⬇️ 下載PDF</button>
+      <button class="primary-btn" style="margin:0;flex:1;" onclick="printEnvelope()">🖨️ 列印信封</button>
     </div>
   </div>
 </div>
@@ -1261,28 +1269,29 @@ function generatePreview() {
   const sym = mixed ? '' : (SYM[policies[0]?.currency]||'元');
   const totalStr = fmtNum(total);
 
-  // 主旨（完整姓名）
-  const subject = `有關終止債務人／義務人${debtor}君（下稱${debtorSurname}君）保險契約執行乙事，詳如說明，請查照。`;
+  // 主旨：鈞院→債務人，鈞署→義務人
+  const personType = courtType === '鈞署' ? '義務人' : '債務人';
+  const subject = `有關終止${personType}${debtor}君（下稱${debtorSurname}君）保險契約執行乙事，詳如說明，請查照。`;
 
-  // 手續費說明（合併所有保單）
-  const feeDesc = (() => {
-    const fees = policies.filter(p => p.fee && p.fee !== '0');
-    if (fees.length === 0) return '已扣除手續費';
-    if (fees.length === 1) return `已扣除手續費${fees[0].fee}${SYM[fees[0].currency]||'元'}`;
-    return '已扣除手續費（詳附件）';
-  })();
+  // 手續費：有填才顯示
+  const hasFee = policies.some(p => p.fee && p.fee !== '0');
+  const feeDesc = hasFee ? '，已扣除手續費' : '';
+
+  // 單張or多張保單
+  const multiPolicy = policies.length > 1;
+  const amountWord = multiPolicy ? `解約金合計為${mainCur}${totalStr}${sym}` : `解約金為${mainCur}${totalStr}${sym}`;
 
   // 第二點
   let para2 = '';
   if (payMethod === '匯款') {
     const remitDate = document.getElementById('remitDate').value || '○年○月○日';
     const account = document.getElementById('account').value || '○○法院○○○專戶';
-    para2 = `二、查本公司已依前揭執行命令終止以${debtorSurname}君為要保人之保險契約，解約金合計為${mainCur}${totalStr}${sym}（明細請詳附件，金額以作業當日為準，${feeDesc}），並於${remitDate}匯款${totalStr}${sym}於${account}。`;
+    para2 = `二、查本公司已依前揭執行命令終止以${debtorSurname}君為要保人之保險契約，${amountWord}（明細請詳附件，金額以作業當日為準${feeDesc}），並於${remitDate}匯款${totalStr}${sym}於${account}。`;
   } else {
     const checkDate = document.getElementById('checkDate').value || '○年○月○日';
     const targetSel = document.getElementById('checkTarget').value;
     const target = targetSel === '自填' ? (document.getElementById('customTarget').value || '○○') : targetSel;
-    para2 = `二、查本公司已依前揭執行命令終止以${debtorSurname}君為要保人之保險契約，解約金合計為${mainCur}${totalStr}${sym}（明細請詳附件，金額以作業當日為準，${feeDesc}），並於${checkDate}開立支票${totalStr}${sym}（影本如附件）逕送${target}。`;
+    para2 = `二、查本公司已依前揭執行命令終止以${debtorSurname}君為要保人之保險契約，${amountWord}（明細請詳附件，金額以作業當日為準${feeDesc}），並於${checkDate}開立支票${totalStr}${sym}（影本如附件）逕送${target}。`;
   }
   if (hasDistribution) {
     para2 += `另解約金${creditorAmt}${sym}給付債權人，餘額${debtorRet}${sym}返還債務人。`;
@@ -1399,32 +1408,29 @@ function showEnvPreview() {
   const staff = document.getElementById('env-staff').value || '○';
   const ext = document.getElementById('env-ext').value || '○○○○○';
 
-  // 郵遞區號格子
+  // 郵遞區號格子（右上橫排）
   const zipBoxes = document.getElementById('env-zip-boxes');
   zipBoxes.innerHTML = '';
-  const zipStr = zip.padEnd(6, ' ');
+  const zipStr = zip.replace(/\D/g,'').padEnd(6,' ');
   for (let i = 0; i < 6; i++) {
     const box = document.createElement('div');
-    box.style.cssText = 'width:14px;height:14px;border:1px solid #e05;display:flex;align-items:center;justify-content:center;font-size:9px;color:#333;';
-    box.textContent = zipStr[i] || '';
+    box.style.cssText = 'width:16px;height:16px;border:1px solid #e05;display:flex;align-items:center;justify-content:center;font-size:8px;color:#333;flex-shrink:0;';
+    box.textContent = zipStr[i]?.trim() || '';
     zipBoxes.appendChild(box);
   }
 
-  // 收件人
-  document.getElementById('env-receiver-block').innerHTML = `
-    <div style="font-size:22px;font-weight:700;color:#111;writing-mode:vertical-rl;display:inline-block;line-height:1.4;">${addr}</div>
-    <div style="font-size:26px;font-weight:700;margin-top:6px;">${name}　${envTitle}　收</div>
-  `;
+  // 收件人地址（直書）
+  document.getElementById('env-addr-block').textContent = addr;
 
-  // 寄件人
-  document.getElementById('env-sender-block').innerHTML = `
-    ○○作業科○○組<br>
-    ${staff}小姐（分機${ext}）<br>
-    ○○市○○區○○路○號○樓
-  `;
+  // 收件人姓名＋稱謂
+  document.getElementById('env-name-block').textContent = name + '　' + envTitle + '　收';
+
+  // 寄件人（直書，分兩行：單位、地址）
+  document.getElementById('env-sender-block').textContent =
+    `○○作業科○○組　${staff}小姐（分機${ext}）　○○市○○區○○路○號○樓`;
 
   // 公文字號
-  document.getElementById('env-docnum-block').innerHTML = docnum;
+  document.getElementById('env-docnum-block').textContent = docnum;
 
   document.getElementById('env-modal').classList.add('show');
 }
@@ -1434,164 +1440,165 @@ function closeEnvModal(e) {
     document.getElementById('env-modal').classList.remove('show');
 }
 
-// ===== LOAD jsPDF =====
-function loadJsPDF() {
-  return new Promise((resolve, reject) => {
-    if (window.jspdf) { resolve(window.jspdf.jsPDF); return; }
-    const s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
-    s.onload = () => resolve(window.jspdf.jsPDF);
-    s.onerror = reject;
-    document.head.appendChild(s);
-  });
-}
-
-function loadJsPDFAutoTable() {
-  return new Promise((resolve, reject) => {
-    if (window.jspdf?.jsPDF?.prototype?.autoTable) { resolve(); return; }
-    const s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js';
-    s.onload = () => resolve();
-    s.onerror = reject;
-    document.head.appendChild(s);
-  });
-}
-
-// ===== DOWNLOAD DETAIL PDF =====
-async function downloadDetailPDF() {
-  const btn = event.target;
+// ===== DOWNLOAD WORD DOC =====
+async function downloadWordDoc() {
+  const btn = document.getElementById('word-btn');
   btn.textContent = '⏳ 產生中...';
   btn.disabled = true;
   try {
-    const JsPDF = await loadJsPDF();
-    await loadJsPDFAutoTable();
+    // 載入 docx.js
+    await new Promise((resolve, reject) => {
+      if (window.docx) { resolve(); return; }
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js';
+      s.onload = resolve; s.onerror = reject;
+      document.head.appendChild(s);
+    });
+
+    const text = document.getElementById('doc-content').dataset.copyText ||
+                 document.getElementById('doc-content').textContent;
     const debtor = document.getElementById('debtor').value || '○○';
-    const hasDistribution = document.getElementById('hasDistribution').checked;
-    const creditorAmt = document.getElementById('creditorAmount').value || '○';
-    const debtorRet = document.getElementById('debtorReturn').value || '○';
-    const total = policies.reduce((s,p) => s + calcActual(p), 0);
-    const hasMixed = new Set(policies.map(p=>p.currency)).size > 1;
+    const lines = text.split('\n');
 
-    const doc = new JsPDF({ orientation:'landscape', unit:'mm', format:'a4' });
+    const { Document, Paragraph, TextRun, Packer, AlignmentType } = window.docx;
 
-    // 標題
-    doc.setFont('helvetica','bold');
-    doc.setFontSize(14);
-    doc.text('附件：', 14, 18);
-    doc.setFontSize(13);
-    doc.text(debtor + '保險解約金明細表', 148, 26, { align:'center' });
+    const children = lines.map(line => new Paragraph({
+      children: [new TextRun({
+        text: line,
+        font: '標楷體',
+        size: 32, // 16pt = 32 half-points
+      })],
+      spacing: { line: 480 }, // 雙倍行距
+    }));
 
-    // 表格欄位
-    const head = [['序號','險別（保單號碼）', ...(hasMixed?['幣別']:[]), '解約金（含紅利、未到期保費）','（扣）保單借款本息','（扣）墊繳保費本息','實領金額']];
-    const body = policies.map((p,i) => [
-      i+1,
-      `${p.name||'—'}\n（${p.number||'—'}）`,
-      ...(hasMixed?[p.currency]:[]),
-      p.amount||'0',
-      p.loan||'0',
-      p.advance||'0',
-      fmtNum(calcActual(p))
-    ]);
-    const cs = hasMixed ? 4 : 3;
-    body.push([{ content:'合計金額', colSpan: cs, styles:{halign:'center',fontStyle:'bold'} }, '', '', fmtNum(total)]);
+    const doc = new Document({ sections: [{ children }] });
+    const blob = await Packer.toBlob(doc);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = debtor + '_公文.docx';
+    a.click(); URL.revokeObjectURL(url);
+  } catch(e) {
+    alert('Word產生失敗，請確認網路連線後再試。\n錯誤：' + e.message);
+  }
+  btn.textContent = '📝 產出 Word 檔';
+  btn.disabled = false;
+}
 
-    doc.autoTable({
-      head, body,
-      startY: 30,
-      styles: { font:'helvetica', fontSize:9, cellPadding:3 },
-      headStyles: { fillColor:[30,45,90], textColor:255, fontStyle:'bold' },
-      alternateRowStyles: { fillColor:[240,242,248] },
-      columnStyles: { 0:{halign:'center',cellWidth:12}, 1:{cellWidth:50} }
-    });
+// ===== PRINT DETAIL =====
+function printDetail() {
+  const debtor = document.getElementById('debtor').value || '○○';
+  const tableHTML = document.getElementById('detail-table').outerHTML;
+  const notesHTML = document.getElementById('detail-notes').innerHTML;
+  const titleText = debtor + '保險解約金明細表';
 
-    // 附註
-    let noteY = doc.lastAutoTable.finalY + 6;
-    doc.setFontSize(9); doc.setFont('helvetica','normal');
-    let ni = 1;
-    policies.forEach(p => {
-      if (p.fee && p.fee !== '0') {
-        doc.text(`註${ni}：保單號碼${p.number||'○○'}另扣除手續費${p.fee}${SYM[p.currency]||'元'}。`, 14, noteY);
-        noteY += 5; ni++;
+  const win = window.open('', '_blank', 'width=900,height=700');
+  win.document.write(`<!DOCTYPE html><html lang="zh-TW"><head>
+    <meta charset="UTF-8">
+    <title>${titleText}</title>
+    <style>
+      body { font-family: '標楷體', serif; font-size: 12pt; margin: 20mm; }
+      .attach-label { font-size: 12pt; margin-bottom: 8px; }
+      .title { font-size: 13pt; font-weight: bold; text-align: center; margin: 12px 0 16px; }
+      table { width: 100%; border-collapse: collapse; }
+      th { background: #1e2d5a; color: #fff; padding: 6px 4px; text-align: center; font-size: 11pt; border: 1px solid #1e2d5a; }
+      td { padding: 6px 4px; text-align: center; border: 1px solid #999; font-size: 11pt; }
+      tr:nth-child(even) td { background: #f5f5f5; }
+      .total-row td { font-weight: bold; background: #e8ecf4; }
+      .notes { margin-top: 10px; font-size: 11pt; line-height: 2; }
+      @media print { @page { size: A4; margin: 20mm; } }
+    </style>
+  </head><body>
+    <div class="attach-label">附件：</div>
+    <div class="title">${titleText}</div>
+    ${tableHTML}
+    <div class="notes">${notesHTML}</div>
+    <script>window.onload=()=>{window.print();}<\/script>
+  </body></html>`);
+  win.document.close();
+}
+
+// ===== PRINT ENVELOPE =====
+function printEnvelope() {
+  const name = document.getElementById('env-name').value || '○○';
+  const zip = document.getElementById('env-zip').value || '000000';
+  const addr = document.getElementById('env-addr').value || '○○縣○○市○○路○號';
+  const docnum = document.getElementById('env-docnum').value || '9A00000xxxxxxxx';
+  const staff = document.getElementById('env-staff').value || '○';
+  const ext = document.getElementById('env-ext').value || '○○○○○';
+  const title = envTitle;
+
+  // 郵遞區號格子（直式由上到下）
+  const zipDigits = zip.replace(/\D/g,'').padEnd(6,' ');
+  const zipBoxes = [...zipDigits].map(d =>
+    `<div style="width:20px;height:20px;border:1px solid #e05;display:flex;align-items:center;justify-content:center;font-size:10pt;color:#333;">${d.trim()}</div>`
+  ).join('');
+
+  const win = window.open('', '_blank', 'width=600,height=900');
+  win.document.write(`<!DOCTYPE html><html lang="zh-TW"><head>
+    <meta charset="UTF-8"><title>信封</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: '標楷體', 'Noto Serif TC', serif; }
+      .envelope {
+        width: 120mm; height: 244mm;
+        position: relative; overflow: hidden; background: #fff;
       }
-    });
-    if (hasDistribution) {
-      doc.text(`註${ni}：解約金金額${creditorAmt}元給付債權人，餘額${debtorRet}元返還債務人。`, 14, noteY);
-    }
-
-    doc.save(debtor + '保險解約金明細表.pdf');
-  } catch(e) {
-    alert('PDF產生失敗，請確認網路連線後再試。');
-  }
-  btn.textContent = '⬇️ 下載明細表 PDF';
-  btn.disabled = false;
+      .stamp {
+        position: absolute; top: 6mm; left: 6mm;
+        width: 20mm; height: 20mm;
+        border: 1.5px solid #e05;
+        display: flex; align-items: center; justify-content: center;
+        flex-direction: column;
+        color: #e05; font-size: 8pt; line-height: 1.4; text-align: center;
+      }
+      .zip-col {
+        position: absolute; top: 6mm; left: 30mm;
+        display: flex; flex-direction: column; gap: 2px;
+      }
+      .addr-col {
+        position: absolute; top: 30mm; right: 8mm;
+        writing-mode: vertical-rl;
+        font-size: 13pt; line-height: 1.6;
+        max-height: 180mm; overflow: hidden;
+      }
+      .name-col {
+        position: absolute; top: 30mm; right: 38mm;
+        writing-mode: vertical-rl;
+        font-size: 18pt; font-weight: bold;
+        white-space: nowrap;
+      }
+      .sender-col {
+        position: absolute; bottom: 6mm; left: 6mm;
+        writing-mode: vertical-rl;
+        font-size: 8pt; line-height: 1.8; color: #444;
+        max-height: 80mm;
+      }
+      .docnum-col {
+        position: absolute; bottom: 6mm; left: 18mm;
+        writing-mode: vertical-rl;
+        font-size: 8pt; color: #e05;
+      }
+      @media print {
+        @page { size: 120mm 244mm; margin: 0; }
+        body { width: 120mm; height: 244mm; }
+      }
+    </style>
+  </head><body>
+    <div class="envelope">
+      <div class="stamp">郵票<br>黏貼</div>
+      <div class="zip-col">${zipBoxes}</div>
+      <div class="addr-col">${addr}</div>
+      <div class="name-col">${name}　${title}　收</div>
+      <div class="sender-col">○○作業科○○組　${staff}小姐（分機${ext}）　○○市○○區○○路○號○樓</div>
+      <div class="docnum-col">${docnum}</div>
+    </div>
+    <script>window.onload=()=>{ setTimeout(()=>window.print(),300); }<\/script>
+  </body></html>`);
+  win.document.close();
 }
 
-// ===== DOWNLOAD ENVELOPE PDF =====
-async function downloadEnvPDF() {
-  const btn = event.target;
-  const origText = btn.textContent;
-  btn.textContent = '⏳ 產生中...';
-  btn.disabled = true;
-  try {
-    const JsPDF = await loadJsPDF();
-    const name = document.getElementById('env-name').value || '○○';
-    const zip = document.getElementById('env-zip').value || '000000';
-    const addr = document.getElementById('env-addr').value || '○○縣○○市○○路○號';
-    const docnum = document.getElementById('env-docnum').value || '9A00000xxxxxxxx';
-    const staff = document.getElementById('env-staff').value || '○';
-    const ext = document.getElementById('env-ext').value || '○○○○○';
-
-    // 244x120mm 橫式信封
-    const doc = new JsPDF({ orientation:'landscape', unit:'mm', format:[244,120] });
-
-    // 郵票框 左上
-    doc.setDrawColor(220,0,80);
-    doc.rect(6, 6, 22, 22);
-    doc.setFontSize(7); doc.setTextColor(220,0,80);
-    doc.text('郵票', 17, 13, {align:'center'});
-    doc.text('黏貼', 17, 18, {align:'center'});
-
-    // 郵遞區號格 右上
-    doc.setTextColor(220,0,80);
-    const zipDigits = zip.replace(/\D/g,'').padEnd(6,' ');
-    for (let i=0; i<6; i++) {
-      doc.rect(210 + i*5, 6, 4.5, 6);
-      doc.setFontSize(8);
-      doc.text(zipDigits[i]||'', 212.2 + i*5, 11);
-    }
-
-    // 收件人地址（直書）— 用橫書模擬，逐字換行
-    doc.setTextColor(20,30,60);
-    doc.setFontSize(11);
-    const addrChars = addr.split('');
-    let ax = 155, ay = 18;
-    addrChars.forEach((ch,i) => {
-      doc.text(ch, ax, ay + i*7);
-      if (ay + (i+1)*7 > 105) { ax -= 12; ay = 18 - (i+1)*7; }
-    });
-
-    // 收件人姓名
-    doc.setFontSize(16); doc.setFont('helvetica','bold');
-    const receiverX = 100;
-    doc.text(name + '　' + envTitle + '　收', receiverX, 90, {align:'center'});
-
-    // 寄件人 左下
-    doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(60,60,60);
-    doc.text('○○作業科○○組', 6, 80);
-    doc.text(`${staff}小姐（分機${ext}）`, 6, 86);
-    doc.text('○○市○○區○○路○號○樓', 6, 92);
-
-    // 公文字號
-    doc.setTextColor(220,0,80); doc.setFontSize(8);
-    doc.text(docnum, 6, 100);
-
-    doc.save(name + '_信封.pdf');
-  } catch(e) {
-    alert('PDF產生失敗，請確認網路連線後再試。');
-  }
-  btn.textContent = origText;
-  btn.disabled = false;
-}
+// ===== DOWNLOAD DETAIL PDF (已廢棄，改用列印) =====
+async function downloadDetailPDF() { printDetail(); }
 
 // Init
 renderPolicies();
