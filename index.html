@@ -453,16 +453,19 @@ textarea { resize: vertical; min-height: 70px; }
 }
 
 /* Table */
-.detail-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.detail-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 12px; }
 .detail-table th {
-  background: linear-gradient(135deg, var(--navy-dark), var(--navy-mid));
-  color: #fff; padding: 8px 6px;
+  background: #eef0f6;
+  color: #000; padding: 8px 6px;
   text-align: center; border: 1px solid var(--navy-mid);
   font-size: 11px; font-weight: 700;
+  word-break: break-all; overflow-wrap: break-word;
 }
 .detail-table td {
   padding: 7px 6px; text-align: center;
   border: 1px solid var(--border); font-size: 12px;
+  color: #000;
+  word-break: break-all; overflow-wrap: break-word;
 }
 .detail-table tr:nth-child(even) td { background: #f8f9fd; }
 .detail-table .total-row td {
@@ -868,7 +871,7 @@ textarea { resize: vertical; min-height: 70px; }
             </div>
             <div class="full">
               <label class="field-label">公文字號</label>
-              <input type="text" id="env-docnum" placeholder="9A00000xxxxxxxx（共15碼）">
+              <input type="text" id="env-docnum" value="9A00000" placeholder="9A00000xxxxxxxx（共15碼）">
             </div>
             <div>
               <label class="field-label">專員姓氏</label>
@@ -883,6 +886,46 @@ textarea { resize: vertical; min-height: 70px; }
             <button class="secondary-btn" style="margin-bottom:0;flex:1;" onclick="showEnvPreview()">👁 預覽信封</button>
             <button class="primary-btn" style="margin-bottom:0;flex:1;" onclick="printEnvelope()">🖨️ 列印信封</button>
           </div>
+
+          <details style="margin-top:14px;">
+            <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--navy);">⚙️ 信封版面校正（套印對齊用）</summary>
+            <div style="margin-top:10px;padding:12px;background:#f8f9fd;border-radius:8px;border:1px solid var(--border);">
+              <div class="alert-box alert-gold" style="margin-bottom:10px;">
+                <span>💡</span>
+                <div>公司信封本身已印好底圖／logo，本工具只負責把文字套印上去。若列印出來的文字位置跟信封版面有落差，請在下方用偏移量微調（單位 mm），設定會自動記住，下次不用重調。</div>
+              </div>
+              <div class="grid2" style="margin-bottom:10px;">
+                <div>
+                  <label class="field-label">信封寬度 (mm)</label>
+                  <input type="text" id="env-cal-w" placeholder="200" oninput="saveEnvCalib()">
+                </div>
+                <div>
+                  <label class="field-label">信封高度 (mm)</label>
+                  <input type="text" id="env-cal-h" placeholder="270" oninput="saveEnvCalib()">
+                </div>
+              </div>
+              <div style="font-size:11px;font-weight:700;color:var(--text-mid);margin:10px 0 6px;">郵遞區號／地址（右側）偏移</div>
+              <div class="grid2">
+                <div><label class="field-label">左右 dx</label><input type="text" id="env-cal-addr-dx" placeholder="0" oninput="saveEnvCalib()"></div>
+                <div><label class="field-label">上下 dy</label><input type="text" id="env-cal-addr-dy" placeholder="0" oninput="saveEnvCalib()"></div>
+              </div>
+              <div style="font-size:11px;font-weight:700;color:var(--text-mid);margin:10px 0 6px;">收件人姓名（中間）偏移</div>
+              <div class="grid2">
+                <div><label class="field-label">左右 dx</label><input type="text" id="env-cal-name-dx" placeholder="0" oninput="saveEnvCalib()"></div>
+                <div><label class="field-label">上下 dy</label><input type="text" id="env-cal-name-dy" placeholder="0" oninput="saveEnvCalib()"></div>
+              </div>
+              <div style="font-size:11px;font-weight:700;color:var(--text-mid);margin:10px 0 6px;">寄件人／文號（左側）偏移</div>
+              <div class="grid2">
+                <div><label class="field-label">左右 dx</label><input type="text" id="env-cal-sender-dx" placeholder="0" oninput="saveEnvCalib()"></div>
+                <div><label class="field-label">上下 dy</label><input type="text" id="env-cal-sender-dy" placeholder="0" oninput="saveEnvCalib()"></div>
+              </div>
+              <label class="checkbox-row" style="margin-top:10px;">
+                <input type="checkbox" id="env-cal-guides" onchange="saveEnvCalib()">
+                <span>顯示測試參考框（郵票／郵遞區號格線，僅供空白紙測試對齊用；套印公司信封時請取消勾選）</span>
+              </label>
+              <button class="secondary-btn" style="margin:10px 0 0;" onclick="resetEnvCalib()">↺ 恢復預設校正值</button>
+            </div>
+          </details>
         </div>
       </div>
 
@@ -915,37 +958,18 @@ textarea { resize: vertical; min-height: 70px; }
       <span style="color:#fff;font-weight:700;font-size:14px;">✉️ 信封預覽</span>
       <button onclick="closeEnvModal()" style="background:none;border:none;color:rgba(255,255,255,0.6);font-size:20px;cursor:pointer;">×</button>
     </div>
-    <!-- 信封預覽區域 直式 120x244mm -->
+    <!-- 信封預覽區域：與列印信封共用同一份版面 HTML，只做等比縮小顯示 -->
     <div style="padding:16px;background:#f0f2f8;overflow-y:auto;">
       <div id="env-preview-box" style="
-        width:200px;
-        height:408px;
         background:#fff;
         border:1px solid #ccc;
         border-radius:4px;
         position:relative;
-        font-family:'Noto Serif TC',serif;
         overflow:hidden;
         box-shadow:0 2px 8px rgba(0,0,0,0.15);
         margin:0 auto;
-      ">
-        <!-- 郵票區 左上 -->
-        <div style="position:absolute;top:8px;left:8px;border:1.5px solid #e05;width:34px;height:34px;display:flex;align-items:center;justify-content:center;flex-direction:column;">
-          <div style="font-size:7px;color:#e05;line-height:1.3;text-align:center;">郵票<br>黏貼</div>
-        </div>
-        <!-- 郵遞區號 右上橫排 -->
-        <div id="env-zip-boxes" style="position:absolute;top:8px;right:8px;display:flex;flex-direction:row;gap:2px;"></div>
-        <!-- 收件人地址 右側直書 -->
-        <div id="env-addr-block" style="position:absolute;top:55px;right:10px;writing-mode:vertical-rl;font-size:11px;line-height:1.5;color:#111;max-height:230px;overflow:hidden;"></div>
-        <!-- 收件人姓名 中間直書 -->
-        <div id="env-name-block" style="position:absolute;top:80px;left:50%;transform:translateX(-50%);writing-mode:vertical-rl;font-size:15px;font-weight:700;white-space:nowrap;letter-spacing:4px;"></div>
-        <!-- 寄件人資訊 左下角 -->
-        <div style="position:absolute;bottom:8px;left:8px;display:flex;flex-direction:row;gap:4px;align-items:flex-end;">
-          <div id="env-sender-block" style="writing-mode:vertical-rl;font-size:6.5px;line-height:1.6;color:#444;max-height:120px;overflow:hidden;"></div>
-          <div id="env-docnum-block" style="writing-mode:vertical-rl;font-size:6.5px;color:#e05;max-height:80px;overflow:hidden;"></div>
-        </div>
-      </div>
-      <div style="font-size:11px;color:var(--text-light);text-align:center;margin-top:8px;">※ 預覽為示意圖，實際列印以列印功能為準</div>
+      "></div>
+      <div style="font-size:11px;color:var(--text-light);text-align:center;margin-top:8px;">※ 預覽與實際列印版面一致（僅等比縮小顯示）</div>
     </div>
     <div style="padding:12px 16px;display:flex;gap:10px;">
       <button class="secondary-btn" style="margin:0;flex:1;" onclick="closeEnvModal()">關閉</button>
@@ -1213,16 +1237,19 @@ function generateDocTable() {
 
   document.getElementById('table-title-doc').textContent = debtor + '保險解約金明細表';
 
-  let thead = '<tr><th>序號</th><th>險別（保單號碼）</th>';
+  const colWidths = hasMixed ? [6,18,6,20,17,17,16] : [6,20,22,18,18,16];
+  let thead = '<colgroup>' + colWidths.map(w => `<col style="width:${w}%">`).join('') + '</colgroup>';
+  const sm = t => `<span style="font-size:0.82em;">${t}</span>`;
+  thead += `<tr><th>序號</th><th>險別<br>${sm('（保單號碼）')}</th>`;
   if (hasMixed) thead += '<th>幣別</th>';
-  thead += '<th>解約金（含紅利、未到期保費）</th><th>（扣）保單借款本息</th><th>（扣）墊繳保費本息</th><th>實領金額</th></tr>';
+  thead += `<th>解約金<br>${sm('（含紅利、未到期保費）')}</th><th>${sm('（扣）')}<br>保單借款本息</th><th>${sm('（扣）')}<br>墊繳保費本息</th><th>實領金額</th></tr>`;
 
   let tbody = '';
   policies.forEach((p, i) => {
     const act = calcActual(p);
     tbody += `<tr>
       <td>${i+1}</td>
-      <td>${p.name||'—'}<br><span style="color:#888;font-size:10px;">（${p.number||'—'}）</span></td>
+      <td><span style="display:block;">${p.name||'—'}</span><span style="display:block;">（${p.number||'—'}）</span></td>
       ${hasMixed?`<td>${p.currency}</td>`:''}
       <td style="text-align:right">${p.amount||'0'}</td>
       <td style="text-align:right">${p.loan||'0'}</td>
@@ -1335,16 +1362,19 @@ function generatePreview() {
   // 明細表（預覽頁）
   document.getElementById('table-title').textContent = debtor + '保險解約金明細表';
   const hasMixed = new Set(policies.map(p=>p.currency)).size > 1;
-  let thead = '<tr><th>序號</th><th>險別（保單號碼）</th>';
+  const colWidths = hasMixed ? [6,18,6,20,17,17,16] : [6,20,22,18,18,16];
+  let thead = '<colgroup>' + colWidths.map(w => `<col style="width:${w}%">`).join('') + '</colgroup>';
+  const sm = t => `<span style="font-size:0.82em;">${t}</span>`;
+  thead += `<tr><th>序號</th><th>險別<br>${sm('（保單號碼）')}</th>`;
   if (hasMixed) thead += '<th>幣別</th>';
-  thead += '<th>解約金（含紅利、未到期保費）</th><th>（扣）保單借款本息</th><th>（扣）墊繳保費本息</th><th>實領金額</th></tr>';
+  thead += `<th>解約金<br>${sm('（含紅利、未到期保費）')}</th><th>${sm('（扣）')}<br>保單借款本息</th><th>${sm('（扣）')}<br>墊繳保費本息</th><th>實領金額</th></tr>`;
 
   let tbody = '';
   policies.forEach((p, i) => {
     const act = calcActual(p);
     tbody += `<tr>
       <td>${i+1}</td>
-      <td>${p.name||'—'}<br><span style="color:#888;font-size:10px;">（${p.number||'—'}）</span></td>
+      <td><span style="display:block;">${p.name||'—'}</span><span style="display:block;">（${p.number||'—'}）</span></td>
       ${hasMixed?`<td>${p.currency}</td>`:''}
       <td style="text-align:right">${p.amount||'0'}</td>
       <td style="text-align:right">${p.loan||'0'}</td>
@@ -1399,38 +1429,137 @@ function setTitle(t) {
   document.getElementById('btn-ms').className = 'toggle-btn' + (t==='小姐'?' active':'');
 }
 
-// ===== ENVELOPE PREVIEW =====
-function showEnvPreview() {
-  const name = document.getElementById('env-name').value || '○○';
-  const zip = document.getElementById('env-zip').value || '000';
-  const addr = document.getElementById('env-addr').value || '○○縣○○市○○路○號';
-  const docnum = document.getElementById('env-docnum').value || '9A00000xxxxxxxx';
-  const staff = document.getElementById('env-staff').value || '○';
-  const ext = document.getElementById('env-ext').value || '○○○○○';
+// ===== ENVELOPE CALIBRATION（套印對齊校正，存於 localStorage） =====
+// 基準比例依「小白信封-男女共用版」公司信封範本估算，實際請試印一張後用偏移量微調
+const ENV_BASE = {
+  addrTopPct: 0.20, addrRightPct: 0.08,
+  namePct: 0.30,
+  senderTopPct: 0.20, senderLeftPct: 0.17, senderMaxHPct: 0.40,
+  stampMM: 6, stampSizeMM: 20,
+  zipMM: 6, zipBoxMM: 6.2,
+};
+const ENV_CALIB_DEFAULT = { w:200, h:270, addrDx:0, addrDy:0, nameDx:0, nameDy:0, senderDx:0, senderDy:0, guides:false };
 
-  // 郵遞區號格子（右上橫排）
-  const zipBoxes = document.getElementById('env-zip-boxes');
-  zipBoxes.innerHTML = '';
-  const zipStr = zip.replace(/\D/g,'').padEnd(6,' ');
-  for (let i = 0; i < 6; i++) {
-    const box = document.createElement('div');
-    box.style.cssText = 'width:16px;height:16px;border:1px solid #e05;display:flex;align-items:center;justify-content:center;font-size:8px;color:#333;flex-shrink:0;';
-    box.textContent = zipStr[i]?.trim() || '';
-    zipBoxes.appendChild(box);
+function loadEnvCalib() {
+  let saved = {};
+  try { saved = JSON.parse(localStorage.getItem('envCalib') || '{}'); } catch(e) {}
+  const c = Object.assign({}, ENV_CALIB_DEFAULT, saved);
+  document.getElementById('env-cal-w').value = c.w;
+  document.getElementById('env-cal-h').value = c.h;
+  document.getElementById('env-cal-addr-dx').value = c.addrDx;
+  document.getElementById('env-cal-addr-dy').value = c.addrDy;
+  document.getElementById('env-cal-name-dx').value = c.nameDx;
+  document.getElementById('env-cal-name-dy').value = c.nameDy;
+  document.getElementById('env-cal-sender-dx').value = c.senderDx;
+  document.getElementById('env-cal-sender-dy').value = c.senderDy;
+  document.getElementById('env-cal-guides').checked = c.guides;
+}
+function getEnvCalib() {
+  const num = (id, def) => { const v = parseFloat(document.getElementById(id).value); return isNaN(v) ? def : v; };
+  return {
+    w: num('env-cal-w', ENV_CALIB_DEFAULT.w),
+    h: num('env-cal-h', ENV_CALIB_DEFAULT.h),
+    addrDx: num('env-cal-addr-dx', 0), addrDy: num('env-cal-addr-dy', 0),
+    nameDx: num('env-cal-name-dx', 0), nameDy: num('env-cal-name-dy', 0),
+    senderDx: num('env-cal-sender-dx', 0), senderDy: num('env-cal-sender-dy', 0),
+    guides: document.getElementById('env-cal-guides').checked,
+  };
+}
+function saveEnvCalib() { localStorage.setItem('envCalib', JSON.stringify(getEnvCalib())); }
+function resetEnvCalib() { localStorage.removeItem('envCalib'); loadEnvCalib(); }
+
+// ===== ENVELOPE RENDER（預覽與列印共用同一份版面，確保長相一致） =====
+function escapeHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+// 直書中的數字／英數字，改用「橫排後整體旋轉」讓它們維持正常字形不被逐字拆開
+// 注意：CSS transform 不會影響版面配置（只影響繪製），所以旋轉後的區塊必須用 canvas 事先量出橫排寬度，
+// 手動保留對應的直書高度，否則旋轉後的文字會覆蓋到旁邊的內容
+let _envMeasureCanvas = null;
+function measureTextPx(text, fontPx, fontFamily) {
+  if (!_envMeasureCanvas) _envMeasureCanvas = document.createElement('canvas');
+  const ctx = _envMeasureCanvas.getContext('2d');
+  ctx.font = `${fontPx}px ${fontFamily}`;
+  return ctx.measureText(text).width;
+}
+function rotateNums(s, fontPx, fontFamily) {
+  return escapeHtml(s).replace(/[0-9A-Za-z()\-]+/g, m => {
+    const w = measureTextPx(m, fontPx, fontFamily);
+    return `<span style="display:inline-flex;align-items:center;justify-content:center;width:1em;height:${w}px;overflow:visible;vertical-align:top;">` +
+             `<span style="display:inline-block;white-space:nowrap;writing-mode:horizontal-tb;transform:rotate(-90deg);">${m}</span>` +
+           `</span>`;
+  });
+}
+function getEnvData() {
+  return {
+    name: document.getElementById('env-name').value || '○○',
+    zip: document.getElementById('env-zip').value || '000000',
+    addr: document.getElementById('env-addr').value || '○○縣○○市○○路○號',
+    docnum: document.getElementById('env-docnum').value || '9A00000xxxxxxxx',
+    staff: document.getElementById('env-staff').value || '○',
+    ext: document.getElementById('env-ext').value || '○○○○○',
+    title: envTitle,
+  };
+}
+// 回傳信封版面的 HTML 片段（純 mm/pt 絕對定位），預覽與列印都用這份，只差在外層要不要縮放
+const ENV_FONT_FAMILY = "'標楷體','Noto Serif TC',serif";
+const ENV_FONT_PT = { addr: 13, name: 20, sender: 8 };
+const pt2px = pt => pt * 96/72;
+
+function buildEnvelopeHTML(data, calib) {
+  const { name, zip, addr, docnum, staff, ext, title } = data;
+  const addrTop = calib.h*ENV_BASE.addrTopPct + calib.addrDy;
+  const addrRight = calib.w*ENV_BASE.addrRightPct - calib.addrDx;
+  const nameTop = calib.h*ENV_BASE.namePct + calib.nameDy;
+  const senderTop = calib.h*ENV_BASE.senderTopPct + calib.senderDy;
+  const senderLeft = calib.w*ENV_BASE.senderLeftPct + calib.senderDx;
+
+  const addrText = rotateNums(calib.guides ? addr : `(${zip})　${addr}`, pt2px(ENV_FONT_PT.addr), ENV_FONT_FAMILY);
+  const senderText = [
+    `○○作業科○○組　${staff}小姐`,
+    `○○市○○區○○路○號○樓`,
+    docnum,
+    `電話07-0000000（分機${ext}）`,
+  ].map(line => rotateNums(line, pt2px(ENV_FONT_PT.sender), ENV_FONT_FAMILY)).join('<br>');
+
+  let guidesHTML = '';
+  if (calib.guides) {
+    const zipDigits = zip.replace(/\D/g,'').padEnd(6,' ');
+    const zipBoxes = [...zipDigits].map(d =>
+      `<div style="width:${ENV_BASE.zipBoxMM}mm;height:${ENV_BASE.zipBoxMM}mm;border:1px solid #e05;display:flex;align-items:center;justify-content:center;font-size:10pt;color:#333;">${escapeHtml(d.trim())}</div>`
+    ).join('');
+    guidesHTML = `
+      <div style="position:absolute;top:${ENV_BASE.stampMM}mm;left:${ENV_BASE.stampMM}mm;width:${ENV_BASE.stampSizeMM}mm;height:${ENV_BASE.stampSizeMM}mm;border:1.5px solid #e05;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#e05;font-size:8pt;line-height:1.4;text-align:center;">郵票<br>黏貼</div>
+      <div style="position:absolute;top:${ENV_BASE.zipMM}mm;right:${ENV_BASE.zipMM}mm;display:flex;flex-direction:row;gap:2px;">${zipBoxes}</div>`;
   }
 
-  // 收件人地址（直書）
-  document.getElementById('env-addr-block').textContent = addr;
+  return `<div style="width:${calib.w}mm;height:${calib.h}mm;position:relative;overflow:hidden;background:#fff;font-family:'標楷體','Noto Serif TC',serif;">
+    ${guidesHTML}
+    <div style="position:absolute;top:${addrTop}mm;right:${addrRight}mm;writing-mode:vertical-rl;font-size:13pt;line-height:1.6;max-height:${calib.h*0.6}mm;overflow:hidden;">${addrText}</div>
+    <div style="position:absolute;top:${nameTop}mm;left:calc(50% + ${calib.nameDx}mm);transform:translateX(-50%);writing-mode:vertical-rl;font-size:20pt;font-weight:bold;white-space:nowrap;">${rotateNums(name, pt2px(ENV_FONT_PT.name), ENV_FONT_FAMILY)}　${rotateNums(title, pt2px(ENV_FONT_PT.name), ENV_FONT_FAMILY)}　收</div>
+    <div style="position:absolute;top:${senderTop}mm;left:${senderLeft}mm;writing-mode:vertical-rl;font-size:8pt;line-height:1.8;color:#444;max-height:${calib.h*ENV_BASE.senderMaxHPct}mm;overflow:hidden;">${senderText}</div>
+  </div>`;
+}
 
-  // 收件人姓名＋稱謂
-  document.getElementById('env-name-block').textContent = name + '　' + envTitle + '　收';
+// ===== ENVELOPE PREVIEW（與列印同一份 HTML，僅等比縮小顯示） =====
+const MM_TO_CSSPX = 96/25.4; // CSS 規格：1mm 固定換算的 96dpi 參考像素，與螢幕實際 DPI 無關
+// 預覽只裁切顯示文字實際會出現的範圍，信封上下大片空白不佔預覽版面（實際列印仍是完整信封尺寸，不受此裁切影響）
+const ENV_PREVIEW_CROP = { top: 0.12, bottom: 0.75, left: 0, right: 1 };
+function showEnvPreview() {
+  const calib = getEnvCalib();
+  const inner = buildEnvelopeHTML(getEnvData(), calib);
+  const crop = ENV_PREVIEW_CROP;
+  const cropWmm = calib.w * (crop.right - crop.left);
+  const cropHmm = calib.h * (crop.bottom - crop.top);
+  const displayW = 320; // 預覽視窗固定顯示寬度（px）
+  const scale = displayW / (cropWmm * MM_TO_CSSPX);
+  const offsetXpx = calib.w * crop.left * MM_TO_CSSPX * scale;
+  const offsetYpx = calib.h * crop.top * MM_TO_CSSPX * scale;
 
-  // 寄件人（直書，分兩行：單位、地址）
-  document.getElementById('env-sender-block').textContent =
-    `○○作業科○○組　${staff}小姐（分機${ext}）　○○市○○區○○路○號○樓`;
-
-  // 公文字號
-  document.getElementById('env-docnum-block').textContent = docnum;
+  const box = document.getElementById('env-preview-box');
+  box.style.width = displayW + 'px';
+  box.style.height = (cropHmm * MM_TO_CSSPX * scale) + 'px';
+  box.innerHTML = `<div style="position:absolute;left:${-offsetXpx}px;top:${-offsetYpx}px;transform:scale(${scale});transform-origin:top left;">${inner}</div>`;
 
   document.getElementById('env-modal').classList.add('show');
 }
@@ -1496,16 +1625,16 @@ function printDetail() {
     <meta charset="UTF-8">
     <title>${titleText}</title>
     <style>
-      body { font-family: '標楷體', serif; font-size: 12pt; margin: 20mm; }
+      body { font-family: '標楷體', serif; font-size: 12pt; margin: 10mm; }
       .attach-label { font-size: 12pt; margin-bottom: 8px; }
       .title { font-size: 13pt; font-weight: bold; text-align: center; margin: 12px 0 16px; }
-      table { width: 100%; border-collapse: collapse; }
-      th { background: #1e2d5a; color: #fff; padding: 6px 4px; text-align: center; font-size: 11pt; border: 1px solid #1e2d5a; }
-      td { padding: 6px 4px; text-align: center; border: 1px solid #999; font-size: 11pt; }
+      table { width: 100%; table-layout: fixed; border-collapse: collapse; }
+      th { background: #eef0f6; color: #000; padding: 6px 4px; text-align: center; font-size: 11pt; border: 1px solid #1e2d5a; word-break: break-all; overflow-wrap: break-word; }
+      td { padding: 6px 4px; text-align: center; border: 1px solid #999; font-size: 11pt; color: #000; word-break: break-all; overflow-wrap: break-word; }
       tr:nth-child(even) td { background: #f5f5f5; }
       .total-row td { font-weight: bold; background: #e8ecf4; }
       .notes { margin-top: 10px; font-size: 11pt; line-height: 2; }
-      @media print { @page { size: A4; margin: 20mm; } }
+      @media print { @page { size: A4; margin: 10mm; } }
     </style>
   </head><body>
     <div class="attach-label">附件：</div>
@@ -1517,81 +1646,23 @@ function printDetail() {
   win.document.close();
 }
 
-// ===== PRINT ENVELOPE =====
+// ===== PRINT ENVELOPE（套印版：只印文字，底圖／logo 為公司信封既有印刷；與預覽共用同一份版面） =====
 function printEnvelope() {
-  const name = document.getElementById('env-name').value || '○○';
-  const zip = document.getElementById('env-zip').value || '000000';
-  const addr = document.getElementById('env-addr').value || '○○縣○○市○○路○號';
-  const docnum = document.getElementById('env-docnum').value || '9A00000xxxxxxxx';
-  const staff = document.getElementById('env-staff').value || '○';
-  const ext = document.getElementById('env-ext').value || '○○○○○';
-  const title = envTitle;
-
-  // 郵遞區號格子（直式由上到下）
-  const zipDigits = zip.replace(/\D/g,'').padEnd(6,' ');
-  const zipBoxes = [...zipDigits].map(d =>
-    `<div style="width:20px;height:20px;border:1px solid #e05;display:flex;align-items:center;justify-content:center;font-size:10pt;color:#333;">${d.trim()}</div>`
-  ).join('');
+  const calib = getEnvCalib();
+  const inner = buildEnvelopeHTML(getEnvData(), calib);
 
   const win = window.open('', '_blank', 'width=600,height=900');
   win.document.write(`<!DOCTYPE html><html lang="zh-TW"><head>
     <meta charset="UTF-8"><title>信封</title>
     <style>
       * { box-sizing: border-box; margin: 0; padding: 0; }
-      body { font-family: '標楷體', 'Noto Serif TC', serif; }
-      .envelope {
-        width: 120mm; height: 244mm;
-        position: relative; overflow: hidden; background: #fff;
-      }
-      .stamp {
-        position: absolute; top: 6mm; left: 6mm;
-        width: 20mm; height: 20mm;
-        border: 1.5px solid #e05;
-        display: flex; align-items: center; justify-content: center;
-        flex-direction: column;
-        color: #e05; font-size: 8pt; line-height: 1.4; text-align: center;
-      }
-      .zip-col {
-        position: absolute; top: 6mm; left: 30mm;
-        display: flex; flex-direction: column; gap: 2px;
-      }
-      .addr-col {
-        position: absolute; top: 30mm; right: 8mm;
-        writing-mode: vertical-rl;
-        font-size: 13pt; line-height: 1.6;
-        max-height: 180mm; overflow: hidden;
-      }
-      .name-col {
-        position: absolute; top: 30mm; right: 38mm;
-        writing-mode: vertical-rl;
-        font-size: 18pt; font-weight: bold;
-        white-space: nowrap;
-      }
-      .sender-col {
-        position: absolute; bottom: 6mm; left: 6mm;
-        writing-mode: vertical-rl;
-        font-size: 8pt; line-height: 1.8; color: #444;
-        max-height: 80mm;
-      }
-      .docnum-col {
-        position: absolute; bottom: 6mm; left: 18mm;
-        writing-mode: vertical-rl;
-        font-size: 8pt; color: #e05;
-      }
       @media print {
-        @page { size: 120mm 244mm; margin: 0; }
-        body { width: 120mm; height: 244mm; }
+        @page { size: ${calib.w}mm ${calib.h}mm; margin: 0; }
+        body { width: ${calib.w}mm; height: ${calib.h}mm; }
       }
     </style>
   </head><body>
-    <div class="envelope">
-      <div class="stamp">郵票<br>黏貼</div>
-      <div class="zip-col">${zipBoxes}</div>
-      <div class="addr-col">${addr}</div>
-      <div class="name-col">${name}　${title}　收</div>
-      <div class="sender-col">○○作業科○○組　${staff}小姐（分機${ext}）　○○市○○區○○路○號○樓</div>
-      <div class="docnum-col">${docnum}</div>
-    </div>
+    ${inner}
     <script>window.onload=()=>{ setTimeout(()=>window.print(),300); }<\/script>
   </body></html>`);
   win.document.close();
@@ -1602,6 +1673,7 @@ async function downloadDetailPDF() { printDetail(); }
 
 // Init
 renderPolicies();
+loadEnvCalib();
 </script>
 </body>
 </html>
