@@ -1,4 +1,10 @@
 <!DOCTYPE html>
+<!--
+  法扣案件公文套版工具
+  © 2026 Miyabi. 原創設計與開發，保留所有權利。
+  未經授權請勿複製、修改後另行發布或聲稱為己作。
+  Repo: https://github.com/mstuiospace/csv_tools
+-->
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
@@ -598,7 +604,7 @@ textarea { resize: vertical; min-height: 70px; }
 
     <div class="home-footer">
       <div class="home-footer-text">資料僅在本機處理，不上傳伺服器</div>
-      <div class="home-footer-name">Designed by Miyabi · 2026</div>
+      <div class="home-footer-name">© 2026 Miyabi · <span id="home-footer-version"></span></div>
     </div>
   </div>
 </div>
@@ -643,7 +649,7 @@ textarea { resize: vertical; min-height: 70px; }
           <div id="remit-fields" class="grid2">
             <div>
               <label class="field-label">匯款日期</label>
-              <input type="text" id="remitDate" placeholder="115年4月13日">
+              <input type="text" id="remitDate" placeholder="115年4月13日" oninput="updateInternalNoteAuto()">
             </div>
             <div>
               <label class="field-label">匯入帳戶／法院專戶</label>
@@ -655,7 +661,7 @@ textarea { resize: vertical; min-height: 70px; }
             <div class="grid2">
               <div>
                 <label class="field-label">開票日期</label>
-                <input type="text" id="checkDate" placeholder="11○年○月○日">
+                <input type="text" id="checkDate" placeholder="11○年○月○日" oninput="updateInternalNoteAuto()">
               </div>
               <div>
                 <label class="field-label">逕送對象</label>
@@ -723,15 +729,18 @@ textarea { resize: vertical; min-height: 70px; }
               <div class="grid2">
                 <div>
                   <label class="field-label">給付債權人金額</label>
-                  <input type="text" id="creditorAmount" placeholder="692,397">
+                  <input type="text" id="creditorAmount" placeholder="○○○,○○○" inputmode="numeric" oninput="renderAmountWarnings()">
                 </div>
                 <div>
                   <label class="field-label">返還債務人金額</label>
-                  <input type="text" id="debtorReturn" placeholder="213,803">
+                  <input type="text" id="debtorReturn" placeholder="○○○,○○○" inputmode="numeric" oninput="renderAmountWarnings()">
                 </div>
               </div>
             </div>
           </div>
+
+          <!-- 金額防呆檢查（自動偵測，無問題時不顯示） -->
+          <div id="amount-warnings" class="hidden" style="margin-top:12px;"></div>
         </div>
       </div>
 
@@ -743,7 +752,7 @@ textarea { resize: vertical; min-height: 70px; }
             <label class="field-label">類型選擇</label>
             <select id="note3Type" onchange="updateNote3()">
               <option value="none">（不加入第三點）</option>
-              <option value="no-control-main">依函揭命令說明○未予控管（有說明點）</option>
+              <option value="no-control-main" selected>依函揭命令說明○未予控管（有說明點）</option>
               <option value="no-control-title">依函揭命令主旨＋說明○未予控管</option>
               <option value="cancel">敬請鈞院准予撤銷扣押命令並副知本公司</option>
               <option value="custom">自填內容</option>
@@ -751,15 +760,15 @@ textarea { resize: vertical; min-height: 70px; }
           </div>
           <div id="note3-sub-main" class="hidden" style="margin-bottom:10px;">
             <label class="field-label">說明第幾點</label>
-            <input type="text" id="note3MainNum" placeholder="七" oninput="updateNote3Preview()">
+            <input type="text" id="note3MainNum" placeholder="七" oninput="updateNote3Preview(); updateInternalNoteAuto();">
           </div>
           <div id="note3-sub-title" class="hidden" style="margin-bottom:10px;">
             <label class="field-label">說明第幾點</label>
-            <input type="text" id="note3TitleNum" placeholder="六" oninput="updateNote3Preview()">
+            <input type="text" id="note3TitleNum" placeholder="六" oninput="updateNote3Preview(); updateInternalNoteAuto();">
           </div>
           <div id="note3-sub-custom" class="hidden" style="margin-bottom:10px;">
             <label class="field-label">自填第三點內容</label>
-            <textarea id="note3Custom" placeholder="請填入第三點內容" oninput="updateNote3Preview()"></textarea>
+            <textarea id="note3Custom" placeholder="請填入第三點內容" oninput="updateNote3Preview(); updateInternalNoteAuto();"></textarea>
           </div>
           <div id="note3-preview" class="hidden">
             <div class="field-label" style="margin-bottom:6px;">預覽</div>
@@ -785,7 +794,12 @@ textarea { resize: vertical; min-height: 70px; }
       <div class="section">
         <div class="section-header"><span class="gold-dot"></span>🔒 對內備註 <span class="density-badge" style="margin-left:auto; background:rgba(192,57,43,0.1); color:#c0392b; border-color:rgba(192,57,43,0.2);">僅對內顯示</span></div>
         <div class="section-body">
-          <textarea id="internalNote" placeholder="例：11○/○/○ 解約，收支票後逕送…（供審核者參考，不出現在對外公文）"></textarea>
+          <div class="alert-box alert-gold" style="margin-bottom:10px;">
+            <span>💡</span>
+            <div>已依日期／給付方式／第三點自動產生，仍可自行編輯；一旦手動修改過就不會再被自動覆蓋。</div>
+          </div>
+          <textarea id="internalNote" placeholder="例：11○/○/○ 解約，收支票後逕送…（供審核者參考，不出現在對外公文）" oninput="markInternalNoteEdited()"></textarea>
+          <button class="copy-btn" style="margin-top:8px;" onclick="copyInternalNote()" id="internal-note-copy-btn">📋 複製對內備註</button>
         </div>
       </div>
 
@@ -798,9 +812,8 @@ textarea { resize: vertical; min-height: 70px; }
         <div class="section-header"><span class="gold-dot"></span>公文內文</div>
         <div class="section-body">
           <div class="doc-text" id="doc-content"></div>
-          <div style="display:flex;gap:8px;margin-top:10px;">
-            <button class="copy-btn" id="copy-btn" onclick="copyDoc()" style="flex:1;">📋 複製純文字</button>
-            <button class="copy-btn" id="word-btn" onclick="downloadWordDoc()" style="flex:1;background:rgba(30,45,90,0.08);border-color:var(--navy);color:var(--navy);">📝 產出 Word 檔</button>
+          <div style="margin-top:10px;">
+            <button class="copy-btn" id="copy-btn" onclick="copyDoc()">📋 一鍵複製公文</button>
           </div>
           <div id="internal-note-preview" class="internal-note-box hidden">
             <div class="internal-note-label">🔒 對內備註</div>
@@ -851,7 +864,7 @@ textarea { resize: vertical; min-height: 70px; }
           <div class="grid2">
             <div>
               <label class="field-label">收件人姓名</label>
-              <input type="text" id="env-name" placeholder="王大明">
+              <input type="text" id="env-name" placeholder="楊○○">
             </div>
             <div>
               <label class="field-label">稱謂</label>
@@ -871,7 +884,7 @@ textarea { resize: vertical; min-height: 70px; }
             </div>
             <div class="full">
               <label class="field-label">公文字號</label>
-              <input type="text" id="env-docnum" value="9A00000" placeholder="9A00000xxxxxxxx（共15碼）">
+              <input type="text" id="env-docnum" value="9A00000" placeholder="9A00000xxxxxxxx（共15碼）" maxlength="15">
             </div>
             <div>
               <label class="field-label">專員姓氏</label>
@@ -879,12 +892,11 @@ textarea { resize: vertical; min-height: 70px; }
             </div>
             <div>
               <label class="field-label">專員分機</label>
-              <input type="text" id="env-ext" placeholder="○○○○○">
+              <input type="text" id="env-ext" placeholder="○○○○○" maxlength="5">
             </div>
           </div>
-          <div style="display:flex;gap:10px;margin-top:14px;">
-            <button class="secondary-btn" style="margin-bottom:0;flex:1;" onclick="showEnvPreview()">👁 預覽信封</button>
-            <button class="primary-btn" style="margin-bottom:0;flex:1;" onclick="printEnvelope()">🖨️ 列印信封</button>
+          <div style="margin-top:14px;">
+            <button class="primary-btn" style="margin-bottom:0;" onclick="printEnvelope()">🖨️ 列印信封</button>
           </div>
 
           <details style="margin-top:14px;">
@@ -951,33 +963,6 @@ textarea { resize: vertical; min-height: 70px; }
   </div>
 </div>
 
-<!-- 信封預覽 Modal -->
-<div class="modal-overlay" id="env-modal" onclick="closeEnvModal(event)">
-  <div class="modal" style="max-width:420px;padding:0;overflow:hidden;">
-    <div style="background:var(--navy);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;">
-      <span style="color:#fff;font-weight:700;font-size:14px;">✉️ 信封預覽</span>
-      <button onclick="closeEnvModal()" style="background:none;border:none;color:rgba(255,255,255,0.6);font-size:20px;cursor:pointer;">×</button>
-    </div>
-    <!-- 信封預覽區域：與列印信封共用同一份版面 HTML，只做等比縮小顯示 -->
-    <div style="padding:16px;background:#f0f2f8;overflow-y:auto;">
-      <div id="env-preview-box" style="
-        background:#fff;
-        border:1px solid #ccc;
-        border-radius:4px;
-        position:relative;
-        overflow:hidden;
-        box-shadow:0 2px 8px rgba(0,0,0,0.15);
-        margin:0 auto;
-      "></div>
-      <div style="font-size:11px;color:var(--text-light);text-align:center;margin-top:8px;">※ 預覽與實際列印版面一致（僅等比縮小顯示）</div>
-    </div>
-    <div style="padding:12px 16px;display:flex;gap:10px;">
-      <button class="secondary-btn" style="margin:0;flex:1;" onclick="closeEnvModal()">關閉</button>
-      <button class="primary-btn" style="margin:0;flex:1;" onclick="printEnvelope()">🖨️ 列印信封</button>
-    </div>
-  </div>
-</div>
-
 <!-- About Modal -->
 <div class="modal-overlay" id="about-modal" onclick="closeAbout(event)">
   <div class="modal">
@@ -988,7 +973,7 @@ textarea { resize: vertical; min-height: 70px; }
       不上傳任何伺服器，個資安全無虞
     </div>
     <div class="modal-version">
-      Designed by <strong>Miyabi</strong> · Version 1.0 · 2026<br>
+      © 2026 <strong>Miyabi</strong> · <span id="about-version"></span><br>
       <span style="font-size:10px;color:var(--text-light);">解約件 · 非解約件 · 清算件 · 介入權 · 縮小保額</span>
     </div>
     <br>
@@ -997,6 +982,14 @@ textarea { resize: vertical; min-height: 70px; }
 </div>
 
 <script>
+// ===== VERSION / 版權資訊 =====
+// 本工具原創設計、開發：Miyabi。每次更新請同步修改這裡的版本號與日期。
+const APP_VERSION = 'v1.2';
+const APP_UPDATED = '2026-08-08';
+const APP_AUTHOR = 'Miyabi';
+console.log(`%c法扣案件公文套版工具 ${APP_VERSION}`, 'font-weight:bold;color:#c4973a;');
+console.log(`© 2026 ${APP_AUTHOR}．原創設計與開發．最後更新：${APP_UPDATED}`);
+
 // ===== STATE =====
 let payMethod = '匯款';
 let policies = [{ name:'', number:'', amount:'', currency:'新臺幣', loan:'0', advance:'0', fee:'250' }];
@@ -1005,7 +998,9 @@ const CURRENCIES = ['新臺幣','美元','澳幣','人民幣'];
 const SYM = {'新臺幣':'元','美元':'美元','澳幣':'澳幣','人民幣':'人民幣'};
 const NUM_ZH = ['','一','二','三','四','五','六','七','八','九','十'];
 
-const INNER_ATTACH = ['總公司照會公文','執行命令','解約明細表','支票影本／公司系統匯款截圖'];
+// 附件清單依給付方式切換：支票案件附支票影本，匯款案件附系統匯款紀錄截圖
+const INNER_ATTACH_REMIT = ['總公司照會公文','執行命令','解約明細表','系統匯款紀錄截圖'];
+const INNER_ATTACH_CHECK = ['總公司照會公文','執行命令','解約明細表','支票影本'];
 const OUTER_ATTACH_REMIT = ['解約明細表'];
 const OUTER_ATTACH_CHECK = ['解約明細表','支票影本'];
 
@@ -1044,6 +1039,7 @@ function setPayMethod(m) {
   document.getElementById('btn-check').className = 'toggle-btn' + (m==='支票'?' active':'');
   document.getElementById('remit-fields').classList.toggle('hidden', m!=='匯款');
   document.getElementById('check-fields').classList.toggle('hidden', m!=='支票');
+  updateInternalNoteAuto();
 }
 function toggleCustomTarget() {
   const v = document.getElementById('checkTarget').value;
@@ -1053,8 +1049,58 @@ function toggleCustomTarget() {
 // ===== HELPERS =====
 function toNum(v) { return parseFloat((v||'0').replace(/,/g,'')) || 0; }
 function fmtNum(n) { return isNaN(n) ? '-' : n.toLocaleString('zh-TW'); }
-function calcActual(p) { return toNum(p.amount) - toNum(p.loan) - toNum(p.advance) - toNum(p.fee); }
+function calcActual(p) { return p.amount ? toNum(p.amount) - toNum(p.loan) - toNum(p.advance) - toNum(p.fee) : 0; }
 function toZhNum(n) { return n <= 10 ? NUM_ZH[n] : n; }
+
+// ===== 金額防呆檢查 =====
+// 只偵測並提示，不阻擋輸入（公文金額情況多，硬性擋掉反而卡住作業）
+function validateAmounts() {
+  const issues = [];
+  const badChar = /[^0-9,\s.]/;   // 金額欄位不該出現的字元
+
+  policies.forEach((p, i) => {
+    const label = `保單 ${i+1}`;
+    // 非數字字元：toNum 會把它當 0，使用者不易察覺
+    [['解約金', p.amount], ['保單借款本息', p.loan], ['墊繳保費本息', p.advance], ['手續費', p.fee]]
+      .forEach(([n, v]) => {
+        if (v && badChar.test(v)) issues.push(`${label}的「${n}」輸入了「${v}」，含非數字字元，會被當成 0 計算`);
+      });
+
+    if (!p.amount) return;
+    const amt = toNum(p.amount), deduct = toNum(p.loan) + toNum(p.advance) + toNum(p.fee);
+    if (deduct > amt) {
+      issues.push(`${label}的扣除項合計 ${fmtNum(deduct)} 元已超過解約金 ${fmtNum(amt)} 元，實領金額會變成負數`);
+    }
+  });
+
+  // 分配給付：兩筆金額加總必須等於合計實領金額（常見手誤是漏扣手續費）
+  if (document.getElementById('hasDistribution')?.checked) {
+    const credRaw = document.getElementById('creditorAmount').value;
+    const debtRaw = document.getElementById('debtorReturn').value;
+    [['給付債權人金額', credRaw], ['返還債務人金額', debtRaw]].forEach(([n, v]) => {
+      if (v && badChar.test(v)) issues.push(`「${n}」輸入了「${v}」，含非數字字元，會被當成 0 計算`);
+    });
+    if (credRaw && debtRaw) {
+      const sum = toNum(credRaw) + toNum(debtRaw);
+      const total = policies.reduce((s, p) => s + calcActual(p), 0);
+      if (sum !== total) {
+        const diff = sum - total;
+        issues.push(`分配給付合計 ${fmtNum(sum)} 元，與合計實領金額 ${fmtNum(total)} 元不符（${diff > 0 ? '多' : '少'} ${fmtNum(Math.abs(diff))} 元）`);
+      }
+    }
+  }
+  return issues;
+}
+
+function renderAmountWarnings() {
+  const box = document.getElementById('amount-warnings');
+  if (!box) return;
+  const issues = validateAmounts();
+  box.classList.toggle('hidden', issues.length === 0);
+  box.innerHTML = issues.map(t =>
+    `<div class="alert-box alert-red" style="margin-bottom:8px;"><span>⚠️</span><div>${t}</div></div>`
+  ).join('');
+}
 
 function validatePolicyNum(el) {
   const v = el.value;
@@ -1081,6 +1127,7 @@ function updateTotal() {
   const mixed = new Set(policies.map(p=>p.currency)).size > 1;
   const sym = mixed ? '（多幣別）' : (SYM[policies[0]?.currency]||'元');
   document.getElementById('total-display').textContent = fmtNum(total) + ' ' + sym;
+  renderAmountWarnings();
 }
 function renderPolicies() {
   const c = document.getElementById('policies-container');
@@ -1141,6 +1188,7 @@ function removePolicy(idx) { policies.splice(idx,1); renderPolicies(); }
 // ===== DISTRIBUTION =====
 function toggleDistribution() {
   document.getElementById('distribution-fields').classList.toggle('hidden', !document.getElementById('hasDistribution').checked);
+  renderAmountWarnings();
 }
 
 // ===== NOTE3 =====
@@ -1151,6 +1199,7 @@ function updateNote3() {
   document.getElementById('note3-sub-custom').classList.toggle('hidden', t !== 'custom');
   document.getElementById('note3-preview').classList.toggle('hidden', t === 'none');
   updateNote3Preview();
+  updateInternalNoteAuto();
 }
 function updateNote3Preview() {
   const t = document.getElementById('note3Type').value;
@@ -1209,6 +1258,7 @@ function updateExtraPara(id, val) {
 // ===== ATTACH (純提醒) =====
 function renderAttach() {
   const payIsCheck = payMethod === '支票';
+  const innerList = payIsCheck ? INNER_ATTACH_CHECK : INNER_ATTACH_REMIT;
   const outerList = payIsCheck ? OUTER_ATTACH_CHECK : OUTER_ATTACH_REMIT;
 
   const renderList = (items, containerId) => {
@@ -1222,7 +1272,7 @@ function renderAttach() {
       c.appendChild(div);
     });
   };
-  renderList(INNER_ATTACH, 'inner-attach-list');
+  renderList(innerList, 'inner-attach-list');
   renderList(outerList, 'outer-attach-list');
 }
 
@@ -1261,21 +1311,25 @@ function generateDocTable() {
   tbody += `<tr class="total-row"><td colspan="${cs}" style="text-align:center">合計金額</td><td colspan="3" style="text-align:right">${fmtNum(total)}</td></tr>`;
   document.getElementById('detail-table-doc').innerHTML = thead + tbody;
 
-  let notes = ''; let ni = 1;
+  const noteItems = [];
   policies.forEach(p => {
     if (p.fee && p.fee !== '0') {
-      notes += `註${ni}：保單號碼${p.number||'○○'}另扣除手續費${p.fee}${SYM[p.currency]||'元'}。<br>`;
-      ni++;
+      noteItems.push(`保單號碼${p.number||'○○'}另扣除手續費${p.fee}${SYM[p.currency]||'元'}。`);
     }
   });
   if (hasDistribution) {
-    notes += `註${ni}：解約金金額${creditorAmt}元給付債權人，餘額${debtorRet}元返還債務人。`;
+    noteItems.push(`解約金金額${creditorAmt}元給付債權人，餘額${debtorRet}元返還債務人。`);
   }
+  // 只有一則註記時不編號，避免「註1」看起來像漏寫了後續項目
+  const notes = noteItems.length === 1
+    ? `註：${noteItems[0]}`
+    : noteItems.map((t, i) => `註${i+1}：${t}`).join('<br>');
   document.getElementById('detail-notes-doc').innerHTML = notes;
 
-  // 同步信封收件人姓名
+  // 債務人即信封收件人：未自行填寫時，以債務人姓名提示（實際列印也會沿用，見 getEnvData）
   const envName = document.getElementById('env-name');
-  if (envName && !envName.value) envName.placeholder = debtor;
+  const debtorVal = document.getElementById('debtor').value.trim();
+  if (envName && !envName.value) envName.placeholder = debtorVal || '楊○○';
 }
 
 // ===== PREVIEW =====
@@ -1386,16 +1440,19 @@ function generatePreview() {
   tbody += `<tr class="total-row"><td colspan="${cs}" style="text-align:center">合計金額</td><td colspan="3" style="text-align:right">${fmtNum(total)}</td></tr>`;
   document.getElementById('detail-table').innerHTML = thead + tbody;
 
-  let notes = ''; let ni = 1;
+  const noteItems = [];
   policies.forEach(p => {
     if (p.fee && p.fee !== '0') {
-      notes += `註${ni}：保單號碼${p.number||'○○'}另扣除手續費${p.fee}${SYM[p.currency]||'元'}。<br>`;
-      ni++;
+      noteItems.push(`保單號碼${p.number||'○○'}另扣除手續費${p.fee}${SYM[p.currency]||'元'}。`);
     }
   });
   if (hasDistribution) {
-    notes += `註${ni}：解約金金額${creditorAmt}元給付債權人，餘額${debtorRet}元返還債務人。`;
+    noteItems.push(`解約金金額${creditorAmt}元給付債權人，餘額${debtorRet}元返還債務人。`);
   }
+  // 只有一則註記時不編號，避免「註1」看起來像漏寫了後續項目
+  const notes = noteItems.length === 1
+    ? `註：${noteItems[0]}`
+    : noteItems.map((t, i) => `註${i+1}：${t}`).join('<br>');
   document.getElementById('detail-notes').innerHTML = notes;
 }
 
@@ -1403,7 +1460,7 @@ function generatePreview() {
 function copyDoc() {
   const text = document.getElementById('doc-content').dataset.copyText ||
                document.getElementById('doc-content').textContent;
-  navigator.clipboard.writeText(text).then(() => {
+  const finish = () => {
     const btn = document.getElementById('copy-btn');
     btn.textContent = '✅ 已複製！';
     btn.classList.add('copied');
@@ -1411,14 +1468,35 @@ function copyDoc() {
       btn.innerHTML = '📋 一鍵複製公文';
       btn.classList.remove('copied');
     }, 2000);
-  }).catch(() => {
+  };
+  const fallbackCopy = () => {
     const range = document.createRange();
     range.selectNode(document.getElementById('doc-content'));
     window.getSelection().removeAllRanges();
     window.getSelection().addRange(range);
     document.execCommand('copy');
     window.getSelection().removeAllRanges();
-  });
+    finish();
+  };
+
+  // 貼到 Word 等支援格式化文字的地方時，強制套用標楷體（公文慣用字體）
+  // 純文字模式（例如貼到記事本）則照舊回退成不含格式的文字
+  // 注意：Word 貼上 HTML 時會忽略單一區塊內的 <br>，導致所有行擠成一段，
+  // 因此每一行都必須各自包成 <p>；字型也要逐段指定，Word 不一定會繼承外層樣式。
+  if (navigator.clipboard && window.ClipboardItem) {
+    const FONT = "font-family:'標楷體','DFKai-SB',serif;font-size:16pt;";
+    const htmlBody = text.split('\n').map(line =>
+      `<p style="${FONT}margin:0;">${escapeHtml(line) || '&nbsp;'}</p>`
+    ).join('');
+    const html = `<div style="${FONT}">${htmlBody}</div>`;
+    const item = new ClipboardItem({
+      'text/plain': new Blob([text], { type: 'text/plain' }),
+      'text/html': new Blob([html], { type: 'text/html' }),
+    });
+    navigator.clipboard.write([item]).then(finish).catch(fallbackCopy);
+  } else {
+    navigator.clipboard.writeText(text).then(finish).catch(fallbackCopy);
+  }
 }
 
 // ===== ENVELOPE TITLE =====
@@ -1430,19 +1508,43 @@ function setTitle(t) {
 }
 
 // ===== ENVELOPE CALIBRATION（套印對齊校正，存於 localStorage） =====
-// 基準比例依「小白信封-男女共用版」公司信封範本估算，實際請試印一張後用偏移量微調
+// 版型座標完全取自範本「小白信封-男女共用版.docx」，不做視覺調整。
+//
+// 【套印模型】docx 頁面設定為 200x270mm，但實體信封寬僅 120mm：
+// 列印時信封封口未折起（整張紙長度約 223+47=270mm，正好等於頁面高度），
+// 送紙時以卡榫夾住兩側置中進紙，因此紙張左右各有 (200-120)/2 = 40mm 落在信封外。
+// → 信封上的實際位置 = docx 距紙張右緣的座標 − 置中偏移量
+// 此模型經照片實測驗證：地址 45.24−40=5.24（照片約 6.1）、寄件人 133.33−40=93.33（照片約 94.3）。
+//
+// 【docx 座標推導】版面為 textDirection=tbRl（直書），文字由右上往左推進，
+// 頁面邊界是旋轉過的：直書下的「上邊界」與「右邊界」皆為 pgMar right = 20mm。
+// 四個方塊錨定在兩個段落，而直書中段落由右往左逐段推進，故需累加段落寬度：
+//   段落寬 = 行高（依 docGrid linePitch 360 twips 對齊網格）
+//   段落1(22pt)=12.70、段落2(預設10pt)=6.35、段落3(22pt)=12.70
+//   → 段落3 起點 = 20+19.05 = 39.05；段落4 起點 = 20+31.75 = 51.75
+//
+//   方塊        錨定段落  H 位移   距紙張右緣   V 位移   top     方塊尺寸        方向
+//   郵遞區號     段落3   -13.09     52.14      5.10   25.10   18.26w x  14.83h  橫書
+//   {{地址}}     段落3   -12.54     51.59     19.63   39.63   17.14w x 136.26h  直書
+//   {{保戶姓名}} 段落4   -25.79     77.54     31.77   51.77   19.84w x 118.99h  直書
+//   寄件人資訊   段落4   -81.58    133.33     69.90   89.90   25.40w x 110.60h  直書
+const ENV_DOCX_PAPER_W = 200;   // 範本 docx 的頁面寬度（mm），用於計算置中送紙偏移
 const ENV_BASE = {
-  addrTopPct: 0.20, addrRightPct: 0.08,
-  namePct: 0.30,
-  senderTopPct: 0.20, senderLeftPct: 0.17, senderMaxHPct: 0.40,
+  // 下列 RightMM 皆為「距 docx 紙張右緣」，實際渲染時會再扣掉置中送紙偏移
+  zipRightMM:     52.14, zipTopMM:    25.10, zipBoxWmm:   18.26,
+  addrRightMM:    51.59, addrTopMM:   39.63, addrMaxHmm: 136.26,
+  nameRightMM:    77.54, nameTopMM:   51.77, nameMaxHmm: 118.99,
+  senderRightMM: 133.33, senderTopMM: 89.90, senderMaxHmm:110.60,
   stampMM: 6, stampSizeMM: 20,
   zipMM: 6, zipBoxMM: 6.2,
 };
-const ENV_CALIB_DEFAULT = { w:200, h:270, addrDx:0, addrDy:0, nameDx:0, nameDy:0, senderDx:0, senderDy:0, guides:false };
+// 信封高度用 270mm：封口未折起時整張紙的長度（信封本體 223mm + 封口約 47mm）
+const ENV_CALIB_DEFAULT = { w:120, h:270, addrDx:0, addrDy:0, nameDx:0, nameDy:0, senderDx:0, senderDy:0, guides:false };
 
 function loadEnvCalib() {
   let saved = {};
-  try { saved = JSON.parse(localStorage.getItem('envCalib') || '{}'); } catch(e) {}
+  // key 帶版本：信封基準尺寸由 200x270 改為實體的 120x223 後，舊的校正值已不適用，需自動失效
+  try { saved = JSON.parse(localStorage.getItem('envCalibV2') || '{}'); } catch(e) {}
   const c = Object.assign({}, ENV_CALIB_DEFAULT, saved);
   document.getElementById('env-cal-w').value = c.w;
   document.getElementById('env-cal-h').value = c.h;
@@ -1465,34 +1567,32 @@ function getEnvCalib() {
     guides: document.getElementById('env-cal-guides').checked,
   };
 }
-function saveEnvCalib() { localStorage.setItem('envCalib', JSON.stringify(getEnvCalib())); }
-function resetEnvCalib() { localStorage.removeItem('envCalib'); loadEnvCalib(); }
+function saveEnvCalib() { localStorage.setItem('envCalibV2', JSON.stringify(getEnvCalib())); }
+function resetEnvCalib() { localStorage.removeItem('envCalibV2'); loadEnvCalib(); }
 
 // ===== ENVELOPE RENDER（預覽與列印共用同一份版面，確保長相一致） =====
 function escapeHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
-// 直書中的數字／英數字，改用「橫排後整體旋轉」讓它們維持正常字形不被逐字拆開
-// 注意：CSS transform 不會影響版面配置（只影響繪製），所以旋轉後的區塊必須用 canvas 事先量出橫排寬度，
-// 手動保留對應的直書高度，否則旋轉後的文字會覆蓋到旁邊的內容
-let _envMeasureCanvas = null;
-function measureTextPx(text, fontPx, fontFamily) {
-  if (!_envMeasureCanvas) _envMeasureCanvas = document.createElement('canvas');
-  const ctx = _envMeasureCanvas.getContext('2d');
-  ctx.font = `${fontPx}px ${fontFamily}`;
-  return ctx.measureText(text).width;
-}
-function rotateNums(s, fontPx, fontFamily) {
-  return escapeHtml(s).replace(/[0-9A-Za-z()\-]+/g, m => {
-    const w = measureTextPx(m, fontPx, fontFamily);
-    return `<span style="display:inline-flex;align-items:center;justify-content:center;width:1em;height:${w}px;overflow:visible;vertical-align:top;">` +
-             `<span style="display:inline-block;white-space:nowrap;writing-mode:horizontal-tb;transform:rotate(-90deg);">${m}</span>` +
-           `</span>`;
+// 直書中的數字／英數字排版，比照信封範本分兩種處理：
+//   4 碼以內（郵遞區號、門牌號）：text-combine-upright 直立合併成一個字寬，數字維持正立
+//   超過 4 碼（公文編號、電話）：text-orientation:sideways 整串橫躺，字元橫向相連
+// 長號碼若改成逐字正立堆疊，15 碼會佔掉約 63mm 高度、整行超過 148mm，會比旁邊兩行長很多而破壞齊頭，
+// 因此長號碼一律橫躺；橫躺後長度約縮為 1/3，三行自然齊頭。
+// 註：這裡改用 CSS 原生的 text-orientation，不用 transform:rotate —— transform 不影響版面配置，
+// 會導致旋轉後的文字覆蓋到旁邊內容（需額外用 canvas 量寬度補高度才能避免）。
+function rotateNums(s) {
+  return escapeHtml(s).replace(/[0-9A-Za-z\-]+/g, m => {
+    if (m.length <= 4) {
+      return `<span style="text-combine-upright:all;">${m}</span>`;
+    }
+    return `<span style="text-orientation:sideways;font-family:Arial,'Helvetica Neue',sans-serif;">${m}</span>`;
   });
 }
 function getEnvData() {
   return {
-    name: document.getElementById('env-name').value || '○○',
+    // 債務人即信封收件人：收件人欄未填時直接沿用債務人姓名
+    name: document.getElementById('env-name').value || document.getElementById('debtor').value.trim() || '○○',
     zip: document.getElementById('env-zip').value || '000000',
     addr: document.getElementById('env-addr').value || '○○縣○○市○○路○號',
     docnum: document.getElementById('env-docnum').value || '9A00000xxxxxxxx',
@@ -1502,25 +1602,30 @@ function getEnvData() {
   };
 }
 // 回傳信封版面的 HTML 片段（純 mm/pt 絕對定位），預覽與列印都用這份，只差在外層要不要縮放
-const ENV_FONT_FAMILY = "'標楷體','Noto Serif TC',serif";
-const ENV_FONT_PT = { addr: 13, name: 20, sender: 8 };
-const pt2px = pt => pt * 96/72;
+// 依實體信封範本量測到的字級（單位 pt）
+const ENV_FONT_PT = { zip: 22, addr: 18, name: 26, title: 22, receive: 24, senderMain: 13, senderDoc: 12 };
 
 function buildEnvelopeHTML(data, calib) {
   const { name, zip, addr, docnum, staff, ext, title } = data;
-  const addrTop = calib.h*ENV_BASE.addrTopPct + calib.addrDy;
-  const addrRight = calib.w*ENV_BASE.addrRightPct - calib.addrDx;
-  const nameTop = calib.h*ENV_BASE.namePct + calib.nameDy;
-  const senderTop = calib.h*ENV_BASE.senderTopPct + calib.senderDy;
-  const senderLeft = calib.w*ENV_BASE.senderLeftPct + calib.senderDx;
+  // 信封置中送紙：docx 以 200mm 寬的紙輸出，信封較窄，左右各有這麼多落在信封外
+  const feedDx = (ENV_DOCX_PAPER_W - calib.w) / 2;
+  // 各方塊以「距信封右緣」定位（= docx 距紙張右緣 − 置中偏移）；dx 正值代表往右移
+  // 郵遞區號與地址同屬收件人區，共用 addrDx/addrDy 一起校正
+  const zipTop     = ENV_BASE.zipTopMM    + calib.addrDy;
+  const zipRight   = ENV_BASE.zipRightMM    - feedDx - calib.addrDx;
+  const addrTop    = ENV_BASE.addrTopMM   + calib.addrDy;
+  const addrRight  = ENV_BASE.addrRightMM   - feedDx - calib.addrDx;
+  const nameTop    = ENV_BASE.nameTopMM   + calib.nameDy;
+  const nameRight  = ENV_BASE.nameRightMM   - feedDx - calib.nameDx;
+  const senderTop  = ENV_BASE.senderTopMM + calib.senderDy;
+  const senderRight= ENV_BASE.senderRightMM - feedDx - calib.senderDx;
 
-  const addrText = rotateNums(calib.guides ? addr : `(${zip})　${addr}`, pt2px(ENV_FONT_PT.addr), ENV_FONT_FAMILY);
-  const senderText = [
+  const addrText = rotateNums(addr);
+  const senderMainText = [
     `○○作業科○○組　${staff}小姐`,
     `○○市○○區○○路○號○樓`,
-    docnum,
-    `電話07-0000000（分機${ext}）`,
-  ].map(line => rotateNums(line, pt2px(ENV_FONT_PT.sender), ENV_FONT_FAMILY)).join('<br>');
+  ].map(rotateNums).join('<br>');
+  const senderDocText = rotateNums(`${docnum}　電話　07-0000000（分機${ext}）`);
 
   let guidesHTML = '';
   if (calib.guides) {
@@ -1535,83 +1640,13 @@ function buildEnvelopeHTML(data, calib) {
 
   return `<div style="width:${calib.w}mm;height:${calib.h}mm;position:relative;overflow:hidden;background:#fff;font-family:'標楷體','Noto Serif TC',serif;">
     ${guidesHTML}
-    <div style="position:absolute;top:${addrTop}mm;right:${addrRight}mm;writing-mode:vertical-rl;font-size:13pt;line-height:1.6;max-height:${calib.h*0.6}mm;overflow:hidden;">${addrText}</div>
-    <div style="position:absolute;top:${nameTop}mm;left:calc(50% + ${calib.nameDx}mm);transform:translateX(-50%);writing-mode:vertical-rl;font-size:20pt;font-weight:bold;white-space:nowrap;">${rotateNums(name, pt2px(ENV_FONT_PT.name), ENV_FONT_FAMILY)}　${rotateNums(title, pt2px(ENV_FONT_PT.name), ENV_FONT_FAMILY)}　收</div>
-    <div style="position:absolute;top:${senderTop}mm;left:${senderLeft}mm;writing-mode:vertical-rl;font-size:8pt;line-height:1.8;color:#444;max-height:${calib.h*ENV_BASE.senderMaxHPct}mm;overflow:hidden;">${senderText}</div>
+    ${calib.guides ? '' : `<div style="position:absolute;top:${zipTop}mm;right:${zipRight}mm;width:${ENV_BASE.zipBoxWmm}mm;text-align:center;font-size:${ENV_FONT_PT.zip}pt;white-space:nowrap;">${escapeHtml(zip)}</div>`}
+    <div style="position:absolute;top:${addrTop}mm;right:${addrRight}mm;writing-mode:vertical-rl;font-size:${ENV_FONT_PT.addr}pt;line-height:1.6;max-height:${ENV_BASE.addrMaxHmm}mm;white-space:nowrap;">${addrText}</div>
+    <div style="position:absolute;top:${nameTop}mm;right:${nameRight}mm;writing-mode:vertical-rl;font-weight:bold;max-height:${ENV_BASE.nameMaxHmm}mm;white-space:nowrap;"><span style="font-size:${ENV_FONT_PT.name}pt;">${rotateNums(name)}</span>　<span style="font-size:${ENV_FONT_PT.title}pt;">${rotateNums(title)}</span>　<span style="font-size:${ENV_FONT_PT.receive}pt;">收</span></div>
+    <div style="position:absolute;top:${senderTop}mm;right:${senderRight}mm;writing-mode:vertical-rl;line-height:1.8;color:#444;max-height:${ENV_BASE.senderMaxHmm}mm;white-space:nowrap;"><span style="font-size:${ENV_FONT_PT.senderMain}pt;">${senderMainText}</span><br><span style="font-size:${ENV_FONT_PT.senderDoc}pt;">${senderDocText}</span></div>
   </div>`;
 }
 
-// ===== ENVELOPE PREVIEW（與列印同一份 HTML，僅等比縮小顯示） =====
-const MM_TO_CSSPX = 96/25.4; // CSS 規格：1mm 固定換算的 96dpi 參考像素，與螢幕實際 DPI 無關
-// 預覽只裁切顯示文字實際會出現的範圍，信封上下大片空白不佔預覽版面（實際列印仍是完整信封尺寸，不受此裁切影響）
-const ENV_PREVIEW_CROP = { top: 0.12, bottom: 0.75, left: 0, right: 1 };
-function showEnvPreview() {
-  const calib = getEnvCalib();
-  const inner = buildEnvelopeHTML(getEnvData(), calib);
-  const crop = ENV_PREVIEW_CROP;
-  const cropWmm = calib.w * (crop.right - crop.left);
-  const cropHmm = calib.h * (crop.bottom - crop.top);
-  const displayW = 320; // 預覽視窗固定顯示寬度（px）
-  const scale = displayW / (cropWmm * MM_TO_CSSPX);
-  const offsetXpx = calib.w * crop.left * MM_TO_CSSPX * scale;
-  const offsetYpx = calib.h * crop.top * MM_TO_CSSPX * scale;
-
-  const box = document.getElementById('env-preview-box');
-  box.style.width = displayW + 'px';
-  box.style.height = (cropHmm * MM_TO_CSSPX * scale) + 'px';
-  box.innerHTML = `<div style="position:absolute;left:${-offsetXpx}px;top:${-offsetYpx}px;transform:scale(${scale});transform-origin:top left;">${inner}</div>`;
-
-  document.getElementById('env-modal').classList.add('show');
-}
-
-function closeEnvModal(e) {
-  if (!e || e.target === document.getElementById('env-modal'))
-    document.getElementById('env-modal').classList.remove('show');
-}
-
-// ===== DOWNLOAD WORD DOC =====
-async function downloadWordDoc() {
-  const btn = document.getElementById('word-btn');
-  btn.textContent = '⏳ 產生中...';
-  btn.disabled = true;
-  try {
-    // 載入 docx.js
-    await new Promise((resolve, reject) => {
-      if (window.docx) { resolve(); return; }
-      const s = document.createElement('script');
-      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/docx/8.5.0/docx.umd.min.js';
-      s.onload = resolve; s.onerror = reject;
-      document.head.appendChild(s);
-    });
-
-    const text = document.getElementById('doc-content').dataset.copyText ||
-                 document.getElementById('doc-content').textContent;
-    const debtor = document.getElementById('debtor').value || '○○';
-    const lines = text.split('\n');
-
-    const { Document, Paragraph, TextRun, Packer, AlignmentType } = window.docx;
-
-    const children = lines.map(line => new Paragraph({
-      children: [new TextRun({
-        text: line,
-        font: '標楷體',
-        size: 32, // 16pt = 32 half-points
-      })],
-      spacing: { line: 480 }, // 雙倍行距
-    }));
-
-    const doc = new Document({ sections: [{ children }] });
-    const blob = await Packer.toBlob(doc);
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = debtor + '_公文.docx';
-    a.click(); URL.revokeObjectURL(url);
-  } catch(e) {
-    alert('Word產生失敗，請確認網路連線後再試。\n錯誤：' + e.message);
-  }
-  btn.textContent = '📝 產出 Word 檔';
-  btn.disabled = false;
-}
 
 // ===== PRINT DETAIL =====
 function printDetail() {
@@ -1621,6 +1656,10 @@ function printDetail() {
   const titleText = debtor + '保險解約金明細表';
 
   const win = window.open('', '_blank', 'width=900,height=700');
+  if (!win) {
+    alert('列印視窗被瀏覽器擋掉了，請允許此網站的快顯視窗（網址列右側通常會有被封鎖的提示圖示），再按一次列印。');
+    return;
+  }
   win.document.write(`<!DOCTYPE html><html lang="zh-TW"><head>
     <meta charset="UTF-8">
     <title>${titleText}</title>
@@ -1652,6 +1691,10 @@ function printEnvelope() {
   const inner = buildEnvelopeHTML(getEnvData(), calib);
 
   const win = window.open('', '_blank', 'width=600,height=900');
+  if (!win) {
+    alert('列印視窗被瀏覽器擋掉了，請允許此網站的快顯視窗（網址列右側通常會有被封鎖的提示圖示），再按一次列印。');
+    return;
+  }
   win.document.write(`<!DOCTYPE html><html lang="zh-TW"><head>
     <meta charset="UTF-8"><title>信封</title>
     <style>
@@ -1671,9 +1714,111 @@ function printEnvelope() {
 // ===== DOWNLOAD DETAIL PDF (已廢棄，改用列印) =====
 async function downloadDetailPDF() { printDetail(); }
 
+// ===== DATE PREFILL（自動帶入民國年月，日期數字留給使用者填） =====
+function prefillDates() {
+  const now = new Date();
+  const minguoYear = now.getFullYear() - 1911;
+  const month = now.getMonth() + 1;
+  const prefix = `${minguoYear}年${month}月日`;
+  ['remitDate', 'checkDate', 'courtDate'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && !el.value) el.value = prefix;
+  });
+}
+
+// ===== 對內備註 自動產生 =====
+let internalNoteManuallyEdited = false;
+function markInternalNoteEdited() { internalNoteManuallyEdited = true; }
+
+// 解析「115年8月8日」或「115/8/8」等格式，缺日期（如僅「115年8月」）回傳 null
+function parseMinguoDate(str) {
+  if (!str) return null;
+  const m = str.match(/(\d+)[年\/](\d+)[月\/](\d+)日?/);
+  if (!m) return null;
+  const [, y, mo, d] = m;
+  const date = new Date(Number(y) + 1911, Number(mo) - 1, Number(d));
+  return isNaN(date.getTime()) ? null : date;
+}
+// 前一工作天（僅避開週末，不處理國定假日）
+function previousWorkday(date) {
+  const d = new Date(date);
+  do { d.setDate(d.getDate() - 1); } while (d.getDay() === 0 || d.getDay() === 6);
+  return d;
+}
+function fmtMinguoSlash(date) {
+  return `${date.getFullYear() - 1911}/${date.getMonth() + 1}/${date.getDate()}`;
+}
+
+function buildAutoInternalNote() {
+  const payIsCheck = payMethod === '支票';
+  const rawDate = document.getElementById(payIsCheck ? 'checkDate' : 'remitDate').value;
+  const parsed = parseMinguoDate(rawDate);
+
+  const lines = [];
+  lines.push(parsed ? `${fmtMinguoSlash(previousWorkday(parsed))} 解約` : '○年○月○日 解約');
+
+  if (payIsCheck) {
+    // 收支票日／寄出支票日無法從開票日推算（屬獨立資訊），但年月比照日期欄位預填，只留「日」給使用者補
+    const now = new Date();
+    lines.push(`收支票日／寄出支票日：${now.getFullYear()-1911}年${now.getMonth()+1}月日`);
+  } else {
+    lines.push(parsed ? `${fmtMinguoSlash(parsed)} 匯款` : '○年○月○日 匯款');
+  }
+
+  const note3Type = document.getElementById('note3Type').value;
+  let thirdPointText = '';
+  if (note3Type === 'cancel') {
+    thirdPointText = '准予撤銷扣押命令並副知本公司';
+  } else if (note3Type === 'no-control-main') {
+    const num = document.getElementById('note3MainNum').value || '○';
+    thirdPointText = `函覆依函揭命令說明${num}未予控管`;
+  } else if (note3Type === 'no-control-title') {
+    const num = document.getElementById('note3TitleNum').value || '○';
+    thirdPointText = `函覆依函揭命令主旨及說明${num}未予控管`;
+  } else if (note3Type === 'custom') {
+    thirdPointText = document.getElementById('note3Custom').value || '';
+  }
+  if (thirdPointText) lines.push(thirdPointText);
+
+  return lines.join('，') + '。';
+}
+
+// 只要使用者還沒手動改過 textarea，日期／給付方式／第三點變動時就自動覆蓋更新
+function updateInternalNoteAuto() {
+  if (internalNoteManuallyEdited) return;
+  const ta = document.getElementById('internalNote');
+  if (!ta) return;
+  ta.value = buildAutoInternalNote();
+}
+
+function copyInternalNote() {
+  const ta = document.getElementById('internalNote');
+  const finish = () => {
+    const btn = document.getElementById('internal-note-copy-btn');
+    const original = btn.innerHTML;
+    btn.textContent = '✅ 已複製！';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.innerHTML = original; btn.classList.remove('copied'); }, 2000);
+  };
+  navigator.clipboard.writeText(ta.value).then(finish).catch(() => {
+    ta.select();
+    document.execCommand('copy');
+    finish();
+  });
+}
+
 // Init
 renderPolicies();
 loadEnvCalib();
+prefillDates();
+// 第三點預設選最常用的「依函揭命令說明○未予控管」。
+// 這裡明確指定 value 而非只靠 HTML 的 selected：瀏覽器重新整理時會恢復上次的選擇，
+// 會把 selected 蓋掉。初始化後再呼叫 updateNote3 展開對應子欄位與預覽
+//（其內部會一併呼叫 updateNote3Preview 與 updateInternalNoteAuto）。
+document.getElementById('note3Type').value = 'no-control-main';
+updateNote3();
+document.getElementById('home-footer-version').textContent = `${APP_VERSION}（${APP_UPDATED} 更新）`;
+document.getElementById('about-version').textContent = `${APP_VERSION} · ${APP_UPDATED} 更新`;
 </script>
 </body>
 </html>
