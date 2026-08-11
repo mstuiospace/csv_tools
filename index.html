@@ -904,16 +904,16 @@ textarea { resize: vertical; min-height: 70px; }
             <div style="margin-top:10px;padding:12px;background:#f8f9fd;border-radius:8px;border:1px solid var(--border);">
               <div class="alert-box alert-gold" style="margin-bottom:10px;">
                 <span>💡</span>
-                <div>公司信封本身已印好底圖／logo，本工具只負責把文字套印上去。若列印出來的文字位置跟信封版面有落差，請在下方用偏移量微調（單位 mm），設定會自動記住，下次不用重調。</div>
+                <div>紙張比照範本設為 16K（197×273mm），信封的實際落點由送紙位置決定，與範本列印方式相同。若印出來的文字位置與信封版面有落差，請用下方偏移量微調（單位 mm），設定會自動記住，下次不用重調。</div>
               </div>
               <div class="grid2" style="margin-bottom:10px;">
                 <div>
-                  <label class="field-label">信封寬度 (mm)</label>
-                  <input type="text" id="env-cal-w" placeholder="200" oninput="saveEnvCalib()">
+                  <label class="field-label">列印紙張寬 (mm)</label>
+                  <input type="text" id="env-cal-w" placeholder="197" oninput="saveEnvCalib()">
                 </div>
                 <div>
-                  <label class="field-label">信封高度 (mm)</label>
-                  <input type="text" id="env-cal-h" placeholder="270" oninput="saveEnvCalib()">
+                  <label class="field-label">列印紙張高 (mm)</label>
+                  <input type="text" id="env-cal-h" placeholder="273" oninput="saveEnvCalib()">
                 </div>
               </div>
               <div style="font-size:11px;font-weight:700;color:var(--text-mid);margin:10px 0 6px;">郵遞區號／地址（右側）偏移</div>
@@ -1484,11 +1484,19 @@ function copyDoc() {
   // 注意：Word 貼上 HTML 時會忽略單一區塊內的 <br>，導致所有行擠成一段，
   // 因此每一行都必須各自包成 <p>；字型也要逐段指定，Word 不一定會繼承外層樣式。
   if (navigator.clipboard && window.ClipboardItem) {
-    const FONT = "font-family:'標楷體','DFKai-SB',serif;font-size:16pt;";
+    // Word 對中文採用「東亞字型」設定，只給 font-family 常常只套到英數字、中文仍回退成預設字型，
+    // 因此必須一併指定 mso-fareast-font-family 等 Word 專屬屬性；
+    // 另外 Word 需要完整的 HTML 文件結構（含 xmlns 宣告與 <style>）才會完整解析樣式。
+    const FONT = "font-family:'標楷體','DFKai-SB',serif;font-size:16pt;"
+      + "mso-ascii-font-family:'標楷體';mso-fareast-font-family:'標楷體';"
+      + "mso-hansi-font-family:'標楷體';mso-bidi-font-family:'標楷體';";
     const htmlBody = text.split('\n').map(line =>
-      `<p style="${FONT}margin:0;">${escapeHtml(line) || '&nbsp;'}</p>`
+      `<p style="${FONT}margin:0;"><span style="${FONT}">${escapeHtml(line) || '&nbsp;'}</span></p>`
     ).join('');
-    const html = `<div style="${FONT}">${htmlBody}</div>`;
+    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" `
+      + `xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">`
+      + `<head><meta charset="utf-8"><style>p,span{${FONT}}</style></head>`
+      + `<body><div style="${FONT}">${htmlBody}</div></body></html>`;
     const item = new ClipboardItem({
       'text/plain': new Blob([text], { type: 'text/plain' }),
       'text/html': new Blob([html], { type: 'text/html' }),
@@ -1508,43 +1516,47 @@ function setTitle(t) {
 }
 
 // ===== ENVELOPE CALIBRATION（套印對齊校正，存於 localStorage） =====
-// 版型座標完全取自範本「小白信封-男女共用版.docx」，不做視覺調整。
+// 【版型來源】座標全部取自範本 docx 用 Word 匯出的 PDF（王小玉_信封.pdf），
+// 也就是 Word 已經排版完成的最終結果，不是從 docx 錨點推導出來的。
 //
-// 【套印模型】docx 頁面設定為 200x270mm，但實體信封寬僅 120mm：
-// 列印時信封封口未折起（整張紙長度約 223+47=270mm，正好等於頁面高度），
-// 送紙時以卡榫夾住兩側置中進紙，因此紙張左右各有 (200-120)/2 = 40mm 落在信封外。
-// → 信封上的實際位置 = docx 距紙張右緣的座標 − 置中偏移量
-// 此模型經照片實測驗證：地址 45.24−40=5.24（照片約 6.1）、寄件人 133.33−40=93.33（照片約 94.3）。
+// 【務必注意，這裡踩過大坑】不要再試圖從 docx 的 positionH/positionV 去「推算」位置。
+// docx 存的是相對座標（relativeFrom="column"/"paragraph"），紙上的絕對位置要靠
+// 重現 Word 的排版引擎才能得出（段落推進量、行高、直書邊界旋轉…），每一步都是假設。
+// 過去曾據此推導出整組座標，實測垂直方向全部差約 45mm
+//（誤把直書上邊界當成 pgMar right=20mm，實際應為 pgMar top=60mm），水平也差 1~16mm。
+// 若日後範本異動，正確做法是「重新用 Word 另存 PDF，再從 PDF 讀座標」，不要用算的。
 //
-// 【docx 座標推導】版面為 textDirection=tbRl（直書），文字由右上往左推進，
-// 頁面邊界是旋轉過的：直書下的「上邊界」與「右邊界」皆為 pgMar right = 20mm。
-// 四個方塊錨定在兩個段落，而直書中段落由右往左逐段推進，故需累加段落寬度：
-//   段落寬 = 行高（依 docGrid linePitch 360 twips 對齊網格）
-//   段落1(22pt)=12.70、段落2(預設10pt)=6.35、段落3(22pt)=12.70
-//   → 段落3 起點 = 20+19.05 = 39.05；段落4 起點 = 20+31.75 = 51.75
-//
-//   方塊        錨定段落  H 位移   距紙張右緣   V 位移   top     方塊尺寸        方向
-//   郵遞區號     段落3   -13.09     52.14      5.10   25.10   18.26w x  14.83h  橫書
-//   {{地址}}     段落3   -12.54     51.59     19.63   39.63   17.14w x 136.26h  直書
-//   {{保戶姓名}} 段落4   -25.79     77.54     31.77   51.77   19.84w x 118.99h  直書
-//   寄件人資訊   段落4   -81.58    133.33     69.90   89.90   25.40w x 110.60h  直書
-const ENV_DOCX_PAPER_W = 200;   // 範本 docx 的頁面寬度（mm），用於計算置中送紙偏移
+// 【PDF 實測值】紙張 200.02 x 270.03mm，五個直書欄位（由右至左）：
+//   欄  內容                        中心線距右緣   文字頂端 y   字級
+//   1   郵遞區號                       56.00        68.96      22pt
+//       地址（同一欄，接在下方）        56.00        87.14      18pt
+//   2   收件人姓名                     98.20        97.72      26pt（字距 1em）
+//       先生/小姐、收（接續同欄）                               22pt / 24pt
+//   3   寄件人單位＋專員               145.27       135.31     12.9pt
+//   4   寄件人地址                     151.81       135.31     12.9pt
+//   5   公文編號＋電話分機             158.15       131.28     12pt（號碼為 Arial）
+// 註：郵遞區號在 PDF 中不帶括號（括號僅出現在「(分機…)」），與需求一致。
+const ENV_PAPER = { w: 200, h: 270 };
 const ENV_BASE = {
-  // 下列 RightMM 皆為「距 docx 紙張右緣」，實際渲染時會再扣掉置中送紙偏移
-  zipRightMM:     52.14, zipTopMM:    25.10, zipBoxWmm:   18.26,
-  addrRightMM:    51.59, addrTopMM:   39.63, addrMaxHmm: 136.26,
-  nameRightMM:    77.54, nameTopMM:   51.77, nameMaxHmm: 118.99,
-  senderRightMM: 133.33, senderTopMM: 89.90, senderMaxHmm:110.60,
+  // cx = 欄中心線距紙張右緣；top = 該段文字頂端距紙張頂端；pt = 字級
+  zip:  { cx:  56.00, top:  68.96, pt: 22 },
+  addr: { cx:  56.00, top:  87.14, pt: 18 },
+  name: { cx:  98.20, top:  97.72, pt: 26, titlePt: 22, receivePt: 24 },
+  s1:   { cx: 145.27, top: 135.31, pt: 12.9 },
+  s2:   { cx: 151.81, top: 135.31, pt: 12.9 },
+  // s3 的 top 與 s1/s2 對齊：PDF 量到 131.28 是因為該欄首字為橫躺的 Arial 數字，
+  // 其 bbox 起算方式與中文字不同，方塊本身仍與另兩欄齊頭
+  s3:   { cx: 158.15, top: 135.31, pt: 12 },
   stampMM: 6, stampSizeMM: 20,
   zipMM: 6, zipBoxMM: 6.2,
 };
-// 信封高度用 270mm：封口未折起時整張紙的長度（信封本體 223mm + 封口約 47mm）
-const ENV_CALIB_DEFAULT = { w:120, h:270, addrDx:0, addrDy:0, nameDx:0, nameDy:0, senderDx:0, senderDy:0, guides:false };
+// w/h 為列印紙張尺寸，與範本 PDF 一致；信封實際落點由印表機送紙位置決定
+const ENV_CALIB_DEFAULT = { w:ENV_PAPER.w, h:ENV_PAPER.h, addrDx:0, addrDy:0, nameDx:0, nameDy:0, senderDx:0, senderDy:0, guides:false };
 
 function loadEnvCalib() {
   let saved = {};
-  // key 帶版本：信封基準尺寸由 200x270 改為實體的 120x223 後，舊的校正值已不適用，需自動失效
-  try { saved = JSON.parse(localStorage.getItem('envCalibV2') || '{}'); } catch(e) {}
+  // key 帶版本：每次變更版型基準（紙張尺寸／座標模型）時遞增，讓已存的舊校正值自動失效
+  try { saved = JSON.parse(localStorage.getItem('envCalibV3') || '{}'); } catch(e) {}
   const c = Object.assign({}, ENV_CALIB_DEFAULT, saved);
   document.getElementById('env-cal-w').value = c.w;
   document.getElementById('env-cal-h').value = c.h;
@@ -1567,26 +1579,28 @@ function getEnvCalib() {
     guides: document.getElementById('env-cal-guides').checked,
   };
 }
-function saveEnvCalib() { localStorage.setItem('envCalibV2', JSON.stringify(getEnvCalib())); }
-function resetEnvCalib() { localStorage.removeItem('envCalibV2'); loadEnvCalib(); }
+function saveEnvCalib() { localStorage.setItem('envCalibV3', JSON.stringify(getEnvCalib())); }
+function resetEnvCalib() { localStorage.removeItem('envCalibV3'); loadEnvCalib(); }
 
 // ===== ENVELOPE RENDER（預覽與列印共用同一份版面，確保長相一致） =====
 function escapeHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
-// 直書中的數字／英數字排版，比照信封範本分兩種處理：
-//   4 碼以內（郵遞區號、門牌號）：text-combine-upright 直立合併成一個字寬，數字維持正立
-//   超過 4 碼（公文編號、電話）：text-orientation:sideways 整串橫躺，字元橫向相連
-// 長號碼若改成逐字正立堆疊，15 碼會佔掉約 63mm 高度、整行超過 148mm，會比旁邊兩行長很多而破壞齊頭，
-// 因此長號碼一律橫躺；橫躺後長度約縮為 1/3，三行自然齊頭。
-// 註：這裡改用 CSS 原生的 text-orientation，不用 transform:rotate —— transform 不影響版面配置，
+// 直書中的數字／英數字排版，規則取自範本 PDF 的字元 bbox 實測：
+//   4 碼以內（門牌號等）：text-combine-upright 壓進一個字寬
+//     — 依據：地址「23」兩字並排、總寬 6.35mm 恰等於 18pt 的一個字寬
+//   超過 4 碼（公文編號、電話、分機）：text-orientation:sideways 整串橫躺
+//     — 依據：公文編號每個字元 x 固定、y 遞增，寬 5.77mm 等於字高（即旋轉 90°）
+// 字型：公文編號與電話號碼在範本中為 Arial，分機號碼則維持標楷體，故以 sidewaysFont 指定。
+// 註：用 CSS 原生的 text-orientation，不用 transform:rotate —— transform 不影響版面配置，
 // 會導致旋轉後的文字覆蓋到旁邊內容（需額外用 canvas 量寬度補高度才能避免）。
-function rotateNums(s) {
+function rotateNums(s, sidewaysFont) {
+  const font = sidewaysFont || "Arial,'Helvetica Neue',sans-serif";
   return escapeHtml(s).replace(/[0-9A-Za-z\-]+/g, m => {
     if (m.length <= 4) {
       return `<span style="text-combine-upright:all;">${m}</span>`;
     }
-    return `<span style="text-orientation:sideways;font-family:Arial,'Helvetica Neue',sans-serif;">${m}</span>`;
+    return `<span style="text-orientation:sideways;font-family:${font};">${m}</span>`;
   });
 }
 function getEnvData() {
@@ -1602,48 +1616,50 @@ function getEnvData() {
   };
 }
 // 回傳信封版面的 HTML 片段（純 mm/pt 絕對定位），預覽與列印都用這份，只差在外層要不要縮放
-// 依實體信封範本量測到的字級（單位 pt）
-const ENV_FONT_PT = { zip: 22, addr: 18, name: 26, title: 22, receive: 24, senderMain: 13, senderDoc: 12 };
-
 function buildEnvelopeHTML(data, calib) {
   const { name, zip, addr, docnum, staff, ext, title } = data;
-  // 信封置中送紙：docx 以 200mm 寬的紙輸出，信封較窄，左右各有這麼多落在信封外
-  const feedDx = (ENV_DOCX_PAPER_W - calib.w) / 2;
-  // 各方塊以「距信封右緣」定位（= docx 距紙張右緣 − 置中偏移）；dx 正值代表往右移
-  // 郵遞區號與地址同屬收件人區，共用 addrDx/addrDy 一起校正
-  const zipTop     = ENV_BASE.zipTopMM    + calib.addrDy;
-  const zipRight   = ENV_BASE.zipRightMM    - feedDx - calib.addrDx;
-  const addrTop    = ENV_BASE.addrTopMM   + calib.addrDy;
-  const addrRight  = ENV_BASE.addrRightMM   - feedDx - calib.addrDx;
-  const nameTop    = ENV_BASE.nameTopMM   + calib.nameDy;
-  const nameRight  = ENV_BASE.nameRightMM   - feedDx - calib.nameDx;
-  const senderTop  = ENV_BASE.senderTopMM + calib.senderDy;
-  const senderRight= ENV_BASE.senderRightMM - feedDx - calib.senderDx;
+  const B = ENV_BASE;
 
-  const addrText = rotateNums(addr);
-  const senderMainText = [
-    `○○作業科○○組　${staff}小姐`,
-    `○○市○○區○○路○號○樓`,
-  ].map(rotateNums).join('<br>');
-  const senderDocText = rotateNums(`${docnum}　電話　07-0000000（分機${ext}）`);
+  // 直書欄位：以「中心線距紙張右緣」定位 —— right 先把元素右緣放到中心線上，
+  // 再用 translateX(50%) 往右推自身寬度的一半，元素中心即落在該線。
+  // line-height:1 對應範本的排列（PDF 實測 18pt 地址的字距正好等於字級 6.35mm）。
+  // dx 正值代表往右移。
+  const col = (cfg, dx, dy, inner, extra = '') =>
+    `<div style="position:absolute;top:${cfg.top + dy}mm;right:${cfg.cx - dx}mm;`
+    + `transform:translateX(50%);writing-mode:vertical-rl;line-height:1;`
+    + `white-space:nowrap;font-size:${cfg.pt}pt;${extra}">${inner}</div>`;
+
+  // 郵遞區號在範本中是「橫書」文字方塊（docx vert=horz），數字一律水平排列。
+  // 不可套用直書欄的數字規則：超過 4 碼會觸發橫躺而往下延伸，撞到下方的地址欄。
+  const zipHTML = calib.guides ? '' :
+    `<div style="position:absolute;top:${B.zip.top + calib.addrDy}mm;right:${B.zip.cx - calib.addrDx}mm;`
+    + `transform:translateX(50%);line-height:1;white-space:nowrap;font-size:${B.zip.pt}pt;">${escapeHtml(zip)}</div>`;
 
   let guidesHTML = '';
   if (calib.guides) {
     const zipDigits = zip.replace(/\D/g,'').padEnd(6,' ');
     const zipBoxes = [...zipDigits].map(d =>
-      `<div style="width:${ENV_BASE.zipBoxMM}mm;height:${ENV_BASE.zipBoxMM}mm;border:1px solid #e05;display:flex;align-items:center;justify-content:center;font-size:10pt;color:#333;">${escapeHtml(d.trim())}</div>`
+      `<div style="width:${B.zipBoxMM}mm;height:${B.zipBoxMM}mm;border:1px solid #e05;display:flex;align-items:center;justify-content:center;font-size:10pt;color:#333;">${escapeHtml(d.trim())}</div>`
     ).join('');
     guidesHTML = `
-      <div style="position:absolute;top:${ENV_BASE.stampMM}mm;left:${ENV_BASE.stampMM}mm;width:${ENV_BASE.stampSizeMM}mm;height:${ENV_BASE.stampSizeMM}mm;border:1.5px solid #e05;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#e05;font-size:8pt;line-height:1.4;text-align:center;">郵票<br>黏貼</div>
-      <div style="position:absolute;top:${ENV_BASE.zipMM}mm;right:${ENV_BASE.zipMM}mm;display:flex;flex-direction:row;gap:2px;">${zipBoxes}</div>`;
+      <div style="position:absolute;top:${B.stampMM}mm;left:${B.stampMM}mm;width:${B.stampSizeMM}mm;height:${B.stampSizeMM}mm;border:1.5px solid #e05;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#e05;font-size:8pt;line-height:1.4;text-align:center;">郵票<br>黏貼</div>
+      <div style="position:absolute;top:${B.zipMM}mm;right:${B.zipMM}mm;display:flex;flex-direction:row;gap:2px;">${zipBoxes}</div>`;
   }
+
+  // 姓名字距為 1em：PDF 實測 26pt 姓名的字距 18.38mm，約為字級 9.17mm 的兩倍
+  const nameInner =
+      `<span style="letter-spacing:1em;">${rotateNums(name)}</span>`
+    + `<span style="font-size:${B.name.titlePt}pt;">${rotateNums(title)}</span>　`
+    + `<span style="font-size:${B.name.receivePt}pt;">收</span>`;
 
   return `<div style="width:${calib.w}mm;height:${calib.h}mm;position:relative;overflow:hidden;background:#fff;font-family:'標楷體','Noto Serif TC',serif;">
     ${guidesHTML}
-    ${calib.guides ? '' : `<div style="position:absolute;top:${zipTop}mm;right:${zipRight}mm;width:${ENV_BASE.zipBoxWmm}mm;text-align:center;font-size:${ENV_FONT_PT.zip}pt;white-space:nowrap;">${escapeHtml(zip)}</div>`}
-    <div style="position:absolute;top:${addrTop}mm;right:${addrRight}mm;writing-mode:vertical-rl;font-size:${ENV_FONT_PT.addr}pt;line-height:1.6;max-height:${ENV_BASE.addrMaxHmm}mm;white-space:nowrap;">${addrText}</div>
-    <div style="position:absolute;top:${nameTop}mm;right:${nameRight}mm;writing-mode:vertical-rl;font-weight:bold;max-height:${ENV_BASE.nameMaxHmm}mm;white-space:nowrap;"><span style="font-size:${ENV_FONT_PT.name}pt;">${rotateNums(name)}</span>　<span style="font-size:${ENV_FONT_PT.title}pt;">${rotateNums(title)}</span>　<span style="font-size:${ENV_FONT_PT.receive}pt;">收</span></div>
-    <div style="position:absolute;top:${senderTop}mm;right:${senderRight}mm;writing-mode:vertical-rl;line-height:1.8;color:#444;max-height:${ENV_BASE.senderMaxHmm}mm;white-space:nowrap;"><span style="font-size:${ENV_FONT_PT.senderMain}pt;">${senderMainText}</span><br><span style="font-size:${ENV_FONT_PT.senderDoc}pt;">${senderDocText}</span></div>
+    ${zipHTML}
+    ${col(B.addr, calib.addrDx, calib.addrDy, rotateNums(addr))}
+    ${col(B.name, calib.nameDx, calib.nameDy, nameInner, 'font-weight:bold;')}
+    ${col(B.s1, calib.senderDx, calib.senderDy, rotateNums(`○○作業科○○組　${staff}小姐`), 'color:#444;')}
+    ${col(B.s2, calib.senderDx, calib.senderDy, rotateNums('○○市○○區○○路○號○樓'), 'color:#444;')}
+    ${col(B.s3, calib.senderDx, calib.senderDy, rotateNums(`${docnum}　電話07-0000000`) + rotateNums(`（分機${ext}）`, "'標楷體','Noto Serif TC',serif"), 'color:#444;')}
   </div>`;
 }
 
