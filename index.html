@@ -1866,9 +1866,10 @@ const ENV_BASE = {
   stampMM: 6, stampSizeMM: 20,
   zipMM: 6, zipBoxMM: 6.2,
 };
-// 實測補償：上表為範本 PDF 中相對於 Word 頁面頂端的座標，但實際套印到信封時
-// 整體還需上移 20mm 才會落在正確位置（2026-08 於公司印表機實測，三個區塊一致）。
-// 刻意與 PDF 座標分開記錄：日後範本若更新，PDF 座標照抄即可，此補償值獨立調整。
+// 版面微調：上表為範本 PDF 中相對於 Word 頁面頂端的座標，照抄套印後整體看起來偏低，
+// 故人工往上移 20mm。這是肉眼判斷的版面調整，不是量出來的，也與印表機無關
+//（換印表機不需要改這個值；印表機造成的偏移請用介面上的校正欄位處理）。
+// 刻意與 PDF 座標分開記錄：日後範本若更新，PDF 座標照抄即可，此值再另行以肉眼判斷。
 const ENV_PRINT_OFFSET_Y = -20;
 // w/h 為列印紙張尺寸，與範本 PDF 一致；信封實際落點由印表機送紙位置決定
 const ENV_CALIB_DEFAULT = { w:ENV_PAPER.w, h:ENV_PAPER.h, addrDx:0, addrDy:0, nameDx:0, nameDy:0, senderDx:0, senderDy:0, guides:false };
