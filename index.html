@@ -152,6 +152,8 @@ body {
 }
 .badge-ready { background: rgba(196,151,58,0.2); color: var(--gold-light); border: 1px solid rgba(196,151,58,0.3); }
 .badge-soon { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.3); border: 1px solid rgba(255,255,255,0.1); }
+/* 可以用，但還沒經實際案件驗證過，刻意與「已完成」用不同色以示區別 */
+.badge-testing { background: rgba(110,170,255,0.16); color: #a8c9f5; border: 1px solid rgba(110,170,255,0.3); }
 
 .home-footer {
   text-align: center;
@@ -208,6 +210,19 @@ body {
   transition: all 0.15s;
 }
 .back-home:hover { background: rgba(255,255,255,0.18); color: #fff; }
+/* 清空是破壞性操作，刻意用低調的外框樣式並放在標題列，
+   與各頁下方的「複製公文」「列印」等主要按鈕保持距離，降低誤觸 */
+.clear-all {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 8px;
+  color: rgba(255,255,255,0.6);
+  font-size: 11px;
+  padding: 7px 11px;
+  cursor: pointer; flex-shrink: 0;
+  transition: all 0.15s;
+}
+.clear-all:hover { background: rgba(214,90,90,0.22); border-color: rgba(214,90,90,0.5); color: #ffd9d9; }
 .tool-header-info { flex: 1; }
 .tool-header-label { font-size: 10px; color: var(--gold); letter-spacing: 2px; opacity: 0.8; }
 .tool-header-title { font-size: 16px; font-weight: 700; color: #fff; }
@@ -584,7 +599,7 @@ textarea { resize: vertical; min-height: 70px; }
         <div class="sit-icon">💰</div>
         <div class="sit-title">非解約給付</div>
         <div class="sit-sub">生存險金／滿期金<br>紅利／返還保價／配息</div>
-        <div class="sit-badge badge-ready">已完成</div>
+        <div class="sit-badge badge-testing">待測試</div>
       </div>
       <div class="situation-card coming-soon">
         <div class="sit-icon">⚖️</div>
@@ -630,6 +645,7 @@ textarea { resize: vertical; min-height: 70px; }
       <div class="tool-header-label">法扣案件公文工具</div>
       <div class="tool-header-title" id="tool-title">解約件</div>
     </div>
+    <button class="clear-all" onclick="clearCase()" title="清空本件所有案件資料，寄件人設定與信封校正值會保留">🗑 清空重填</button>
   </div>
 
   <div class="tool-body">
@@ -1238,10 +1254,15 @@ textarea { resize: vertical; min-height: 70px; }
 
     <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px;">
       <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px;">📋 更新紀錄</div>
+      <!-- 只留最近四筆，新增一筆就把最舊的那筆刪掉 -->
       <div style="font-size:11.5px;color:var(--text-mid);line-height:1.8;">
         <div style="margin-bottom:8px;">
+          <strong>v1.5</strong>　2026-08-16<br>
+          新增非解約給付情境，支援多債權人與匯款、支票並存；新增一鍵清空重填
+        </div>
+        <div style="margin-bottom:8px;">
           <strong>v1.4</strong>　2026-08-16<br>
-          移除所有外部連線；寄件人資訊改由使用者設定；公文文號可於首頁填寫並自動帶入對內備註與信封
+          寄件人資訊改由使用者設定；公文文號可於首頁填寫並自動帶入對內備註與信封
         </div>
         <div style="margin-bottom:8px;">
           <strong>v1.3</strong>　2026-08-12<br>
@@ -1255,8 +1276,7 @@ textarea { resize: vertical; min-height: 70px; }
     </div>
 
     <div class="modal-version" style="text-align:center;margin-top:12px;">
-      © 2026 <strong>Miyabi</strong> · <span id="about-version"></span><br>
-      <span style="font-size:10px;color:var(--text-light);">解約件 · 非解約件 · 清算件 · 介入權 · 縮小保額</span>
+      © 2026 <strong>Miyabi</strong> · <span id="about-version"></span>
     </div>
     <br>
     <button class="modal-close" onclick="closeAbout()" style="display:block;margin:0 auto;">關閉</button>
@@ -1691,7 +1711,7 @@ function generatePreview() {
   const extraText = extraParas.map((p, i) => `${toZhNum(baseNum+i)}、${p.text||'（請填入內容）'}`).join('\n');
 
   // 主旨+說明（複製用）
-  const copyText = `主旨：${subject}\n\n說明：\n\n一、依${courtType}${courtDate}${orderNum}執行命令辦理。\n${para2}${para3 ? '\n' + para3 : ''}${extraText ? '\n' + extraText : ''}`;
+  const copyText = `主旨：${subject}\n\n說明：\n一、依${courtType}${courtDate}${orderNum}執行命令辦理。\n${para2}${para3 ? '\n' + para3 : ''}${extraText ? '\n' + extraText : ''}`;
 
   document.getElementById('doc-content').textContent = copyText;
   document.getElementById('doc-content').dataset.copyText = copyText;
@@ -2201,7 +2221,15 @@ let ntSelectedTypes = [];
 let ntNoteEdited = false;      // 對內備註是否被手動改過
 let ntSubjectEdited = false;   // 主旨是否被手動改過
 
+let ntDefaultsApplied = false;
 function ntInit() {
+  // 瀏覽器重新整理時會還原 <select> 上次的選擇，蓋掉 HTML 的 selected，
+  // 故預設值改在此明確指定；只做一次，避免使用者改過後回首頁再進來又被重設。
+  if (!ntDefaultsApplied) {
+    document.getElementById('nt-note2Type').value = 'close';
+    document.getElementById('nt-note3Type').value = 'none';
+    ntDefaultsApplied = true;
+  }
   ntRenderTypes();
   ntRenderCreditors();
   ntPrefillDate();
@@ -2240,7 +2268,10 @@ function ntToggleType(t) {
 }
 function ntTypeText() {
   const list = ntSelectedTypes.map(t => t === '自填' ? ntVal('nt-typeCustom') : t).filter(Boolean);
-  return list.length ? list.join('及') : '○○保險金';
+  if (!list.length) return '○○保險金';
+  // 公文慣例：三項以上時前面用頓號相連，只有最後一項用「及」
+  if (list.length === 1) return list[0];
+  return list.slice(0, -1).join('、') + '及' + list[list.length - 1];
 }
 
 // ---- 債權人：各自金額與給付方式 ----
@@ -2343,7 +2374,7 @@ function ntBuildNotes() {
 }
 function ntDocText() {
   const subject = ntVal('nt-subject') || ntBuildSubject();
-  return `主旨：${subject}\n\n說明：\n\n${ntBuildNotes().join('\n')}`;
+  return `主旨：${subject}\n\n說明：\n${ntBuildNotes().join('\n')}`;
 }
 // 主旨一經手動修改就停止自動覆蓋，避免蓋掉依來文脈絡調整過的內容
 function ntMarkSubjectEdited() {
@@ -2363,14 +2394,21 @@ function ntRenderDoc() {
 function ntMarkNoteEdited() { ntNoteEdited = true; }
 function ntBuildNote() {
   const parts = [];
-  if (ntCreditors.some(c => c.pay === '匯款')) {
-    const d = parseMinguoDate(ntVal('nt-remitDate'));
-    parts.push(d ? `${fmtMinguoSlash(d)} 匯款` : '○年○月○日 匯款');
-  }
-  if (ntCreditors.some(c => c.pay === '支票')) {
-    const d = parseMinguoDate(ntVal('nt-checkDate'));
-    parts.push(d ? `${fmtMinguoSlash(d)} 開票` : '○年○月○日 開票');
-  }
+  const hasRemit = ntCreditors.some(c => c.pay === '匯款');
+  const hasCheck = ntCreditors.some(c => c.pay === '支票');
+  const remitDate = hasRemit ? parseMinguoDate(ntVal('nt-remitDate')) : null;
+  const checkDate = hasCheck ? parseMinguoDate(ntVal('nt-checkDate')) : null;
+
+  // 作業日＝實際給付日的前一工作天（比照解約件的「○/○ 解約」）。
+  // 匯款與支票並存時取較早的那個日期推算，因為給付作業在兩者之前就完成了。
+  const payDates = [remitDate, checkDate].filter(Boolean);
+  const opBase = payDates.length ? new Date(Math.min(...payDates.map(d => d.getTime()))) : null;
+  parts.push(opBase
+    ? `${fmtMinguoSlash(previousWorkday(opBase))}${ntTypeText()}給付作業日`
+    : `○年○月○日${ntTypeText()}給付作業日`);
+
+  if (hasRemit) parts.push(remitDate ? `${fmtMinguoSlash(remitDate)} 匯款` : '○年○月○日 匯款');
+  if (hasCheck) parts.push(checkDate ? `${fmtMinguoSlash(checkDate)} 開票` : '○年○月○日 開票');
   const dn = ntVal('nt-docNum');
   const reply = dn ? `函覆（${dn}）` : '函覆';
   const t2 = ntVal('nt-note2Type');
@@ -2407,6 +2445,63 @@ function ntUpdate() {
 // ---- 複製 ----
 function ntCopyDoc()  { copyRichText(ntDocText(), 'nt-copy-btn', '📋 一鍵複製公文'); }
 function ntCopyNote() { copyRichText(ntVal('nt-internalNote'), 'nt-note-copy-btn', '📋 複製對內備註'); }
+
+// ===================== 一鍵清空 =====================
+// 為什麼需要：瀏覽器重新整理會自動還原表單狀態（<select> 會跑回上次的選擇），
+// 從首頁重進也不會清掉記憶體中的 policies／ntCreditors，
+// 兩種做法都會留下上一件的殘值卻「看起來像新的」，風險比沒清更高。
+
+// 這兩類欄位是「設定」不是「案件資料」，清空時必須保留，否則使用者每件都要重填
+const KEEP_PREFIXES = ['set-', 'env-cal-'];
+
+// 用前綴白名單而非逐一列舉欄位，日後新增欄位會自動被清到，不必記得回來改這裡
+function clearFieldsIn(rootId) {
+  document.querySelectorAll(`#${rootId} input, #${rootId} textarea, #${rootId} select`).forEach(el => {
+    if (KEEP_PREFIXES.some(p => el.id && el.id.startsWith(p))) return;
+    if (el.type === 'checkbox' || el.type === 'radio') el.checked = false;
+    else if (el.tagName === 'SELECT') el.selectedIndex = 0;
+    else el.value = '';
+  });
+}
+
+function clearCase() {
+  const isNonTerm = document.getElementById('tool-title').textContent === '非解約給付';
+  if (!confirm('確定清空本件所有已填資料？\n\n寄件人設定與信封校正值會保留，其餘欄位回到剛開啟的狀態。\n此動作無法復原。')) return;
+
+  if (isNonTerm) {
+    clearFieldsIn('scenario-nonterm');
+    ntSelectedTypes.length = 0;
+    ntCreditors.length = 0;
+    ntCreditors.push({ name:'', amount:'', pay:'匯款' });
+    ntNoteEdited = false;
+    ntSubjectEdited = false;
+    // 清空後 select 已回到第一個選項，這裡再明確指定一次預設值
+    document.getElementById('nt-note2Type').value = 'close';
+    document.getElementById('nt-note3Type').value = 'none';
+    ntRenderTypes();
+    ntRenderCreditors();
+    ntPrefillDate();
+    ntUpdate();
+    ntSwitchTab('form');
+  } else {
+    clearFieldsIn('scenario-termination');
+    policies.length = 0;
+    policies.push({ name:'', number:'', amount:'', currency:'新臺幣', loan:'0', advance:'0', fee:'250' });
+    extraParas.length = 0;
+    internalNoteManuallyEdited = false;
+    envDocNumManuallyEdited = false;
+    renderPolicies();
+    renderExtraParas();
+    setPayMethod('匯款');
+    toggleCustomTarget();
+    prefillDates();
+    document.getElementById('note3Type').value = 'no-control-main';
+    updateNote3();          // 內含 updateNote3Preview 與 updateInternalNoteAuto
+    syncDocNum();
+    switchTab('form');
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
 // Init
 renderPolicies();
