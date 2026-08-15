@@ -1564,8 +1564,11 @@ function copyDoc() {
       'text/html': new Blob([html], { type: 'text/html' }),
     });
     navigator.clipboard.write([item]).then(finish).catch(fallbackCopy);
-  } else {
+  } else if (navigator.clipboard) {
     navigator.clipboard.writeText(text).then(finish).catch(fallbackCopy);
+  } else {
+    // 非安全內容（file://、HTTP）下 navigator.clipboard 不存在，直接走 execCommand 備援
+    fallbackCopy();
   }
 }
 
@@ -1947,11 +1950,13 @@ function copyInternalNote() {
     btn.classList.add('copied');
     setTimeout(() => { btn.innerHTML = original; btn.classList.remove('copied'); }, 2000);
   };
-  navigator.clipboard.writeText(ta.value).then(finish).catch(() => {
-    ta.select();
-    document.execCommand('copy');
-    finish();
-  });
+  const fallback = () => { ta.select(); document.execCommand('copy'); finish(); };
+  // 非安全內容（file://、HTTP）下 navigator.clipboard 不存在，需先判斷再使用
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(ta.value).then(finish).catch(fallback);
+  } else {
+    fallback();
+  }
 }
 
 // Init
