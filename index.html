@@ -163,6 +163,19 @@ body {
   color: rgba(255,255,255,0.25);
   letter-spacing: 1px;
 }
+.home-about-btn {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(196,151,58,0.3);
+  border-radius: 20px;
+  color: var(--gold-light);
+  font-family: inherit; font-size: 11px;
+  padding: 6px 16px; margin: 12px 0 10px;
+  cursor: pointer; transition: all 0.2s;
+}
+.home-about-btn:hover {
+  background: rgba(196,151,58,0.15);
+  border-color: var(--gold);
+}
 .home-footer-name {
   font-size: 12px;
   color: var(--gold);
@@ -198,12 +211,6 @@ body {
 .tool-header-info { flex: 1; }
 .tool-header-label { font-size: 10px; color: var(--gold); letter-spacing: 2px; opacity: 0.8; }
 .tool-header-title { font-size: 16px; font-weight: 700; color: #fff; }
-.info-btn {
-  background: none; border: none;
-  color: var(--gold-light); font-size: 18px; cursor: pointer; opacity: 0.6;
-  transition: opacity 0.15s;
-}
-.info-btn:hover { opacity: 1; }
 
 .tool-body { padding: 16px; max-width: 700px; margin: 0 auto; }
 
@@ -607,6 +614,9 @@ textarea { resize: vertical; min-height: 70px; }
 
     <div class="home-footer">
       <div class="home-footer-text">案件資料全程在您的瀏覽器處理，不會傳送到任何伺服器</div>
+      <!-- 資安說明與更新紀錄的入口。原本只在工具頁的標題列有 ℹ，首頁看不到，
+           但需要查閱這些資訊的人（例如資安查核）多半停在首頁，故在此提供入口 -->
+      <button class="home-about-btn" onclick="showAbout()">🔒 資料處理方式與更新紀錄</button>
       <div class="home-footer-name">© 2026 Miyabi · <span id="home-footer-version"></span></div>
     </div>
   </div>
@@ -620,7 +630,6 @@ textarea { resize: vertical; min-height: 70px; }
       <div class="tool-header-label">法扣案件公文工具</div>
       <div class="tool-header-title" id="tool-title">解約件</div>
     </div>
-    <button class="info-btn" onclick="showAbout()">ℹ</button>
   </div>
 
   <div class="tool-body">
