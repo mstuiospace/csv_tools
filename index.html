@@ -580,11 +580,11 @@ textarea { resize: vertical; min-height: 70px; }
         <div class="sit-sub">解約／含其他給付</div>
         <div class="sit-badge badge-ready">已完成</div>
       </div>
-      <div class="situation-card coming-soon">
+      <div class="situation-card" onclick="openTool('非解約給付')">
         <div class="sit-icon">💰</div>
         <div class="sit-title">非解約給付</div>
-        <div class="sit-sub">生存險金／滿期金<br>紅利／返還保價</div>
-        <div class="sit-badge badge-soon">開發中</div>
+        <div class="sit-sub">生存險金／滿期金<br>紅利／返還保價／配息</div>
+        <div class="sit-badge badge-ready">已完成</div>
       </div>
       <div class="situation-card coming-soon">
         <div class="sit-icon">⚖️</div>
@@ -633,6 +633,8 @@ textarea { resize: vertical; min-height: 70px; }
   </div>
 
   <div class="tool-body">
+  <!-- ===================== 情境：解約件 ===================== -->
+  <div id="scenario-termination">
     <!-- Tabs -->
     <div class="tabs">
       <button class="tab active" id="tab-form" onclick="switchTab('form')">✏️ 填寫</button>
@@ -1001,6 +1003,215 @@ textarea { resize: vertical; min-height: 70px; }
 
       <button class="secondary-btn" onclick="switchTab('form')">← 返回編輯</button>
     </div>
+  </div><!-- /scenario-termination -->
+
+  <!-- ===================== 情境：非解約給付 ===================== -->
+  <!-- 與解約件差異大：無明細表、無信封，故獨立一套版面，只共用日期／文號／複製等基礎功能 -->
+  <div id="scenario-nonterm" class="hidden">
+    <div class="tabs">
+      <button class="tab active" id="nt-tab-form" onclick="ntSwitchTab('form')">✏️ 填寫</button>
+      <button class="tab inactive" id="nt-tab-preview" onclick="ntSwitchTab('preview')">📄 公文預覽</button>
+    </div>
+
+    <!-- ===== 填寫 ===== -->
+    <div id="nt-page-form">
+      <div class="alert-box alert-navy">
+        <span>🔒</span>
+        <div><strong>密等提醒：</strong>對內 → <strong>密件＋最速件</strong>｜對外 → <strong>普通</strong></div>
+      </div>
+
+      <!-- 給付日期：給付方式跟著各債權人，同一案可能匯款與支票並存，故兩個日期都可填 -->
+      <div class="section">
+        <div class="section-header"><span class="gold-dot"></span>給付日期</div>
+        <div class="section-body">
+          <div class="alert-box alert-navy" style="margin-bottom:10px;">
+            <span>ℹ️</span>
+            <div>給付方式在下方逐一指定給各債權人，同一件可同時有匯款與支票。此處只填日期，未使用的方式會自動略過。</div>
+          </div>
+          <div class="grid2">
+            <div>
+              <label class="field-label">匯款日期</label>
+              <input type="text" id="nt-remitDate" placeholder="115年8月4日" oninput="ntUpdate()">
+            </div>
+            <div>
+              <label class="field-label">開票日期</label>
+              <input type="text" id="nt-checkDate" placeholder="11○年○月○日" oninput="ntUpdate()">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 案件基本資訊 -->
+      <div class="section">
+        <div class="section-header"><span class="gold-dot"></span>案件基本資訊</div>
+        <div class="section-body grid2">
+          <div class="full">
+            <label class="field-label">法院／署別</label>
+            <select id="nt-courtType" onchange="ntUpdate()">
+              <option value="鈞院">鈞院（地方法院）</option>
+              <option value="鈞署">鈞署（行政執行署）</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">命令日期</label>
+            <input type="text" id="nt-courtDate" placeholder="11○年○月○日" oninput="ntUpdate()">
+          </div>
+          <div>
+            <label class="field-label">執行命令字號</label>
+            <input type="text" id="nt-orderNum" placeholder="北院○○司執○字第○號" oninput="ntUpdate()">
+          </div>
+          <div class="full">
+            <label class="field-label">債務人姓名</label>
+            <input type="text" id="nt-debtor" placeholder="王大明" oninput="ntUpdate()">
+          </div>
+          <div class="full">
+            <label class="field-label">公文文號 <span style="font-size:10px;color:var(--text-light);">（共15碼）</span></label>
+            <input type="text" id="nt-docNum" placeholder="共15碼" maxlength="15" oninput="ntUpdate()">
+          </div>
+        </div>
+      </div>
+
+      <!-- 給付類型 -->
+      <div class="section">
+        <div class="section-header"><span class="gold-dot"></span>給付類型 <span class="density-badge" style="margin-left:auto;">可複選</span></div>
+        <div class="section-body">
+          <div class="alert-box alert-gold" style="margin-bottom:10px;">
+            <span>💡</span>
+            <div>可複選；選兩種以上會以「及」串接。若來文用的是概括寫法，可直接選「已得請領保險金」或自填。</div>
+          </div>
+          <div id="nt-types" class="cur-group"></div>
+          <div id="nt-type-custom-field" class="hidden" style="margin-top:10px;">
+            <label class="field-label">自填給付類型</label>
+            <input type="text" id="nt-typeCustom" placeholder="請填入給付類型名稱" oninput="ntUpdate()">
+          </div>
+        </div>
+      </div>
+
+      <!-- 債權人與金額 -->
+      <div class="section">
+        <div class="section-header"><span class="gold-dot"></span>債權人給付金額</div>
+        <div class="section-body">
+          <div class="alert-box alert-navy" style="margin-bottom:10px;">
+            <span>ℹ️</span>
+            <div>一位債權人一筆金額，並各自指定匯款或支票。<br>
+              債權人名稱有填就用名稱（例：至國泰世華銀行指定帳號）；未填則依人數，三人以上才寫數字。</div>
+          </div>
+          <div id="nt-creditors"></div>
+          <button class="add-btn" onclick="ntAddCreditor()">＋ 新增債權人</button>
+          <div class="total-bar">
+            <span class="label">給付總額</span>
+            <span class="value" id="nt-total">0 元</span>
+          </div>
+          <label class="checkbox-row" style="margin-top:12px;">
+            <input type="checkbox" id="nt-noFee" onchange="ntUpdate()">
+            <span>給付金額不足，未扣除手續費（勾選後主旨不顯示「已扣除手續費250元」）</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- 第二點 -->
+      <div class="section">
+        <div class="section-header"><span class="gold-dot"></span>第二點內容</div>
+        <div class="section-body">
+          <div style="margin-bottom:10px;">
+            <label class="field-label">類型選擇</label>
+            <select id="nt-note2Type" onchange="ntUpdate()">
+              <option value="none">（不加入第二點）</option>
+              <option value="close">敬請鈞院於本案執行命令撤銷後，另行副知本公司俾便結案</option>
+              <option value="nocontrol">本公司依函揭命令說明○未予控管前揭保險契約</option>
+              <option value="cancel">敬請鈞院准予撤銷本件扣押命令並副知本公司</option>
+            </select>
+          </div>
+          <div id="nt-note2-num" class="hidden" style="margin-bottom:10px;">
+            <label class="field-label">說明第幾點</label>
+            <input type="text" id="nt-note2Num" placeholder="七" oninput="ntUpdate()" style="max-width:140px">
+          </div>
+          <div id="nt-note2-preview" class="hidden">
+            <div class="field-label" style="margin-bottom:6px;">預覽</div>
+            <div id="nt-note2-preview-text" style="font-size:13px;color:var(--navy);background:rgba(30,45,90,0.05);border-radius:6px;padding:10px;line-height:1.8;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 第三點 -->
+      <div class="section">
+        <div class="section-header"><span class="gold-dot"></span>第三點內容 <span class="density-badge" style="margin-left:auto;">選用</span></div>
+        <div class="section-body">
+          <div style="margin-bottom:10px;">
+            <label class="field-label">類型選擇</label>
+            <select id="nt-note3Type" onchange="ntUpdate()">
+              <option value="none">（不加入第三點）</option>
+              <option value="correction">更正先前函覆之金額</option>
+              <option value="custom">自填內容</option>
+            </select>
+          </div>
+          <div id="nt-correction-fields" class="hidden" style="padding:12px;background:#f8f9fd;border-radius:8px;border:1px solid var(--border);">
+            <div class="grid2">
+              <div>
+                <label class="field-label">原函覆日期</label>
+                <input type="text" id="nt-corrDate" placeholder="113年7月16日" oninput="ntUpdate()">
+              </div>
+              <div>
+                <label class="field-label">原函覆文號</label>
+                <input type="text" id="nt-corrDocNum" placeholder="國壽字1130072137號" oninput="ntUpdate()">
+              </div>
+              <div>
+                <label class="field-label">原告知金額</label>
+                <input type="text" id="nt-corrOld" placeholder="86,538" inputmode="numeric" oninput="ntUpdate()">
+              </div>
+              <div>
+                <label class="field-label">更正後金額</label>
+                <input type="text" id="nt-corrNew" placeholder="86,251" inputmode="numeric" oninput="ntUpdate()">
+              </div>
+            </div>
+          </div>
+          <div id="nt-note3-custom-field" class="hidden">
+            <label class="field-label">自填第三點內容</label>
+            <textarea id="nt-note3Custom" placeholder="請填入第三點內容" oninput="ntUpdate()"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- 對內備註 -->
+      <div class="section">
+        <div class="section-header"><span class="gold-dot"></span>🔒 對內備註 <span class="density-badge" style="margin-left:auto; background:rgba(192,57,43,0.1); color:#c0392b; border-color:rgba(192,57,43,0.2);">僅對內顯示</span></div>
+        <div class="section-body">
+          <div class="alert-box alert-gold" style="margin-bottom:10px;">
+            <span>💡</span>
+            <div>已依日期／給付方式／說明段落自動產生，仍可自行編輯；一旦手動修改過就不會再被自動覆蓋。</div>
+          </div>
+          <textarea id="nt-internalNote" placeholder="供審核者參考，不出現在對外公文" oninput="ntMarkNoteEdited()"></textarea>
+          <button class="copy-btn" style="margin-top:8px;" onclick="ntCopyNote()" id="nt-note-copy-btn">📋 複製對內備註</button>
+        </div>
+      </div>
+
+      <button class="primary-btn" onclick="ntSwitchTab('preview')">📄 查看公文預覽</button>
+    </div>
+
+    <!-- ===== 公文預覽 ===== -->
+    <div id="nt-page-preview" class="hidden">
+      <div class="section">
+        <div class="section-header"><span class="gold-dot"></span>公文內文</div>
+        <div class="section-body">
+          <div class="alert-box alert-gold" style="margin-bottom:10px;">
+            <span>💡</span>
+            <div>主旨可直接編輯，以配合法院來文的脈絡；修改後不會再被自動覆蓋。</div>
+          </div>
+          <label class="field-label">主旨（可自行調整）</label>
+          <textarea id="nt-subject" oninput="ntMarkSubjectEdited()" style="min-height:64px;margin-bottom:12px;"></textarea>
+          <div class="doc-text" id="nt-doc-content"></div>
+          <div style="margin-top:10px;">
+            <button class="copy-btn" id="nt-copy-btn" onclick="ntCopyDoc()">📋 一鍵複製公文</button>
+          </div>
+          <div id="nt-internal-preview" class="internal-note-box hidden">
+            <div class="internal-note-label">🔒 對內備註</div>
+            <div id="nt-internal-text" style="font-size:13px;white-space:pre-wrap;color:var(--text-mid);"></div>
+          </div>
+        </div>
+      </div>
+      <button class="secondary-btn" onclick="ntSwitchTab('form')">← 返回編輯</button>
+    </div>
+  </div><!-- /scenario-nonterm -->
   </div>
 </div>
 
@@ -1055,7 +1266,7 @@ textarea { resize: vertical; min-height: 70px; }
 <script>
 // ===== VERSION / 版權資訊 =====
 // 本工具原創設計、開發：Miyabi。每次更新請同步修改這裡的版本號與日期。
-const APP_VERSION = 'v1.4';
+const APP_VERSION = 'v1.5';
 const APP_UPDATED = '2026-08-16';
 const APP_AUTHOR = 'Miyabi';
 console.log(`%c法扣案件公文套版工具 ${APP_VERSION}`, 'font-weight:bold;color:#c4973a;');
@@ -1080,8 +1291,17 @@ function openTool(name) {
   document.getElementById('home-page').style.display = 'none';
   document.getElementById('tool-page').style.display = 'block';
   document.getElementById('tool-title').textContent = name;
-  renderPolicies();
-  switchTab('form');
+  // 各情境的版面差異大（例如非解約給付沒有明細表與信封），故各自獨立一套版面
+  const isNonTerm = name === '非解約給付';
+  document.getElementById('scenario-termination').classList.toggle('hidden', isNonTerm);
+  document.getElementById('scenario-nonterm').classList.toggle('hidden', !isNonTerm);
+  if (isNonTerm) {
+    ntInit();
+    ntSwitchTab('form');
+  } else {
+    renderPolicies();
+    switchTab('form');
+  }
 }
 function goHome() {
   document.getElementById('tool-page').style.display = 'none';
@@ -1528,30 +1748,27 @@ function generatePreview() {
 }
 
 // ===== COPY（只複製主旨+說明）=====
-function copyDoc() {
-  const text = document.getElementById('doc-content').dataset.copyText ||
-               document.getElementById('doc-content').textContent;
+// 各情境共用的複製邏輯：同時放入純文字與帶標楷體格式的 HTML
+// 貼到 Word／公文系統會保留標楷體 16pt，貼到記事本則得到純文字
+function copyRichText(text, btnId, btnLabel) {
+  const btn = document.getElementById(btnId);
   const finish = () => {
-    const btn = document.getElementById('copy-btn');
     btn.textContent = '✅ 已複製！';
     btn.classList.add('copied');
-    setTimeout(() => {
-      btn.innerHTML = '📋 一鍵複製公文';
-      btn.classList.remove('copied');
-    }, 2000);
+    setTimeout(() => { btn.innerHTML = btnLabel; btn.classList.remove('copied'); }, 2000);
   };
+  // 備援：以暫時的 textarea 複製，適用於 navigator.clipboard 不可用的環境
   const fallbackCopy = () => {
-    const range = document.createRange();
-    range.selectNode(document.getElementById('doc-content'));
-    window.getSelection().removeAllRanges();
-    window.getSelection().addRange(range);
-    document.execCommand('copy');
-    window.getSelection().removeAllRanges();
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch(e) {}
+    ta.remove();
     finish();
   };
 
-  // 貼到 Word 等支援格式化文字的地方時，強制套用標楷體（公文慣用字體）
-  // 純文字模式（例如貼到記事本）則照舊回退成不含格式的文字
   // 注意：Word 貼上 HTML 時會忽略單一區塊內的 <br>，導致所有行擠成一段，
   // 因此每一行都必須各自包成 <p>；字型也要逐段指定，Word 不一定會繼承外層樣式。
   if (navigator.clipboard && window.ClipboardItem) {
@@ -1579,6 +1796,11 @@ function copyDoc() {
     // 非安全內容（file://、HTTP）下 navigator.clipboard 不存在，直接走 execCommand 備援
     fallbackCopy();
   }
+}
+
+function copyDoc() {
+  const el = document.getElementById('doc-content');
+  copyRichText(el.dataset.copyText || el.textContent, 'copy-btn', '📋 一鍵複製公文');
 }
 
 // ===== ENVELOPE TITLE =====
@@ -1967,6 +2189,224 @@ function copyInternalNote() {
     fallback();
   }
 }
+
+// ===================== 情境：非解約給付 =====================
+// 與解約件的差異：無明細表、無信封；改為「多債權人各一筆金額、各自匯款或支票」。
+// 命名一律加 nt- 前綴，與解約件的邏輯完全隔離，避免兩情境互相牽動。
+const NT_TYPES = ['生存保險金','滿期保險金','返還保價金','紅利保險金','已得請領保險金','自填'];
+const NT_FEE = 250;
+
+let ntCreditors = [{ name:'', amount:'', pay:'匯款' }];
+let ntSelectedTypes = [];
+let ntNoteEdited = false;      // 對內備註是否被手動改過
+let ntSubjectEdited = false;   // 主旨是否被手動改過
+
+function ntInit() {
+  ntRenderTypes();
+  ntRenderCreditors();
+  ntPrefillDate();
+  ntUpdate();
+}
+function ntPrefillDate() {
+  const now = new Date();
+  const prefix = `${now.getFullYear()-1911}年${now.getMonth()+1}月日`;
+  ['nt-remitDate','nt-checkDate','nt-courtDate'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && !el.value) el.value = prefix;
+  });
+}
+function ntSwitchTab(t) {
+  ['form','preview'].forEach(n => {
+    document.getElementById('nt-page-'+n).classList.toggle('hidden', n!==t);
+    document.getElementById('nt-tab-'+n).className = 'tab ' + (n===t?'active':'inactive');
+  });
+  if (t === 'preview') ntRenderDoc();
+}
+const ntVal = id => (document.getElementById(id)?.value || '').trim();
+
+// ---- 給付類型（可複選，含自填）----
+function ntRenderTypes() {
+  document.getElementById('nt-types').innerHTML = NT_TYPES.map(t =>
+    `<button class="cur-btn${ntSelectedTypes.includes(t)?' active':''}" onclick="ntToggleType('${t}')">${t}</button>`
+  ).join('');
+  document.getElementById('nt-type-custom-field')
+    .classList.toggle('hidden', !ntSelectedTypes.includes('自填'));
+}
+function ntToggleType(t) {
+  const i = ntSelectedTypes.indexOf(t);
+  if (i >= 0) ntSelectedTypes.splice(i,1); else ntSelectedTypes.push(t);
+  ntRenderTypes();
+  ntUpdate();
+}
+function ntTypeText() {
+  const list = ntSelectedTypes.map(t => t === '自填' ? ntVal('nt-typeCustom') : t).filter(Boolean);
+  return list.length ? list.join('及') : '○○保險金';
+}
+
+// ---- 債權人：各自金額與給付方式 ----
+function ntRenderCreditors() {
+  document.getElementById('nt-creditors').innerHTML = ntCreditors.map((cr,i) => `
+    <div class="policy-card">
+      <div class="policy-header">
+        <span class="policy-num">債權人 ${i+1}</span>
+        ${ntCreditors.length>1 ? `<button class="remove-btn" onclick="ntRemoveCreditor(${i})">✕</button>` : ''}
+      </div>
+      <div class="grid2">
+        <div class="full">
+          <label class="field-label">債權人名稱 <span style="font-size:10px;color:var(--text-light);">（選填，填了主旨就用名稱）</span></label>
+          <input type="text" value="${escapeHtml(cr.name)}" placeholder="例：○○銀行"
+                 oninput="ntSetCreditor(${i},'name',this.value)" style="width:100%">
+        </div>
+        <div>
+          <label class="field-label">給付金額</label>
+          <input type="text" value="${escapeHtml(cr.amount)}" placeholder="○○○,○○○" inputmode="numeric"
+                 oninput="ntSetCreditor(${i},'amount',this.value)" style="width:100%">
+        </div>
+        <div>
+          <label class="field-label">給付方式</label>
+          <div class="toggle-group">
+            <button class="toggle-btn${cr.pay==='匯款'?' active':''}" onclick="ntSetCreditor(${i},'pay','匯款')">匯款</button>
+            <button class="toggle-btn${cr.pay==='支票'?' active':''}" onclick="ntSetCreditor(${i},'pay','支票')">支票</button>
+          </div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+function ntAddCreditor() { ntCreditors.push({ name:'', amount:'', pay:'匯款' }); ntRenderCreditors(); ntUpdate(); }
+function ntRemoveCreditor(i) { ntCreditors.splice(i,1); ntRenderCreditors(); ntUpdate(); }
+function ntSetCreditor(i, k, v) {
+  ntCreditors[i][k] = v;
+  if (k === 'pay') ntRenderCreditors();   // 需重繪以更新按鈕的選取狀態
+  ntUpdate();
+}
+
+// 依實務寫法組出收款對象：有名稱就列名稱，否則用人數（兩人以內不寫數字）
+function ntPayeeText(list) {
+  const names = list.map(c => c.name.trim()).filter(Boolean);
+  if (names.length && names.length === list.length) return names.join('、');
+  return list.length >= 3 ? `${toZhNum(list.length)}債權人` : '債權人';
+}
+
+// ---- 公文組出 ----
+function ntFeeText() {
+  return document.getElementById('nt-noFee')?.checked ? '' : `（已扣除手續費${NT_FEE}元）`;
+}
+function ntBuildSubject() {
+  const debtor = ntVal('nt-debtor') || '○○○';
+  const types = ntTypeText();
+  const fee = ntFeeText();
+  const remit = ntCreditors.filter(c => c.pay === '匯款');
+  const check = ntCreditors.filter(c => c.pay === '支票');
+  const amounts = l => l.map(c => c.amount.trim()).filter(Boolean).join('、') || '○○';
+
+  // 張數：單張依公文慣例寫「乙紙」，多張才用數字
+  const sheets = n => (n === 1 ? '乙' : toZhNum(n)) + '紙';
+
+  // 全部為支票：沿用範本「隨函檢附…支票影本」的句型
+  if (!remit.length && check.length) {
+    return `隨函檢附債務人${debtor}之${types}債權支票影本${sheets(check.length)}${fee}，請查照。`;
+  }
+  // 其餘（純匯款、或匯款與支票並存）：以「有關…」起首，兩種給付方式併陳
+  const segs = [];
+  if (remit.length) {
+    const d = ntVal('nt-remitDate') || '○年○月○日';
+    segs.push(`本公司已於${d}匯款新臺幣${amounts(remit)}元至${ntPayeeText(remit)}指定帳號`);
+  }
+  if (check.length) {
+    // 有指名債權人時標明對象，否則只寫張數，避免出現「債權人之支票影本」這種贅語
+    const names = check.map(c => c.name.trim()).filter(Boolean);
+    const who = (names.length && names.length === check.length) ? `${names.join('、')}之` : '';
+    segs.push(`隨函檢附${who}支票影本${sheets(check.length)}`);
+  }
+  return `有關債務人${debtor}之${types}債權，${segs.join('，並')}${fee}，請查照。`;
+}
+function ntBuildNotes() {
+  const ct = ntVal('nt-courtType') || '鈞院';
+  const debtor = ntVal('nt-debtor') || '○○○';
+  const lines = [`依${ct}${ntVal('nt-courtDate')||'○年○月○日'}${ntVal('nt-orderNum')||'○○字第○號'}執行命令辦理。`];
+
+  const t2 = ntVal('nt-note2Type');
+  if (t2 === 'close')     lines.push(`敬請${ct}於本案執行命令撤銷後，另行副知本公司俾便結案。`);
+  if (t2 === 'nocontrol') lines.push(`本公司依函揭命令說明${ntVal('nt-note2Num')||'○'}未予控管前揭保險契約，併予敘明。`);
+  if (t2 === 'cancel')    lines.push(`敬請${ct}准予撤銷本件扣押命令並副知本公司，實感德便。`);
+
+  const t3 = ntVal('nt-note3Type');
+  if (t3 === 'correction') {
+    const ty = ntTypeText();
+    lines.push(`本公司原於${ntVal('nt-corrDate')||'○年○月○日'}以${ntVal('nt-corrDocNum')||'○○字第○號'}函覆，`
+      + `債務人${debtor}有已得領取之${ty}新臺幣${ntVal('nt-corrOld')||'○○'}元（需另扣除手續費${NT_FEE}元），`
+      + `爰特此更正債務人${debtor}已得領取之${ty}為新臺幣${ntVal('nt-corrNew')||'○○'}元（已扣除手續費${NT_FEE}元）。`);
+  }
+  if (t3 === 'custom') lines.push(ntVal('nt-note3Custom') || '（請填入內容）');
+
+  return lines.map((t,i) => `${toZhNum(i+1)}、${t}`);
+}
+function ntDocText() {
+  const subject = ntVal('nt-subject') || ntBuildSubject();
+  return `主旨：${subject}\n\n說明：\n\n${ntBuildNotes().join('\n')}`;
+}
+// 主旨一經手動修改就停止自動覆蓋，避免蓋掉依來文脈絡調整過的內容
+function ntMarkSubjectEdited() {
+  ntSubjectEdited = true;
+  document.getElementById('nt-doc-content').textContent = ntDocText();
+}
+function ntRenderDoc() {
+  const subj = document.getElementById('nt-subject');
+  if (!ntSubjectEdited) subj.value = ntBuildSubject();
+  document.getElementById('nt-doc-content').textContent = ntDocText();
+  const note = ntVal('nt-internalNote');
+  document.getElementById('nt-internal-preview').classList.toggle('hidden', !note);
+  document.getElementById('nt-internal-text').textContent = note;
+}
+
+// ---- 對內備註（比照解約件：日期＋函覆（文號）＋所選說明）----
+function ntMarkNoteEdited() { ntNoteEdited = true; }
+function ntBuildNote() {
+  const parts = [];
+  if (ntCreditors.some(c => c.pay === '匯款')) {
+    const d = parseMinguoDate(ntVal('nt-remitDate'));
+    parts.push(d ? `${fmtMinguoSlash(d)} 匯款` : '○年○月○日 匯款');
+  }
+  if (ntCreditors.some(c => c.pay === '支票')) {
+    const d = parseMinguoDate(ntVal('nt-checkDate'));
+    parts.push(d ? `${fmtMinguoSlash(d)} 開票` : '○年○月○日 開票');
+  }
+  const dn = ntVal('nt-docNum');
+  const reply = dn ? `函覆（${dn}）` : '函覆';
+  const t2 = ntVal('nt-note2Type');
+  if (t2 === 'close')          parts.push(`${reply}於執行命令撤銷後另行副知俾便結案`);
+  else if (t2 === 'nocontrol') parts.push(`${reply}依函揭命令說明${ntVal('nt-note2Num')||'○'}未予控管`);
+  else if (t2 === 'cancel')    parts.push(`${reply}准予撤銷扣押命令並副知本公司`);
+  else if (dn)                 parts.push(reply);
+  if (ntVal('nt-note3Type') === 'correction') parts.push('並更正前次函覆金額');
+  return parts.join('，') + '。';
+}
+
+function ntUpdate() {
+  // 第二點：僅「未予控管」需要填說明點次
+  const t2 = ntVal('nt-note2Type');
+  document.getElementById('nt-note2-num').classList.toggle('hidden', t2 !== 'nocontrol');
+  document.getElementById('nt-note2-preview').classList.toggle('hidden', t2 === 'none');
+  if (t2 !== 'none') {
+    document.getElementById('nt-note2-preview-text').textContent = ntBuildNotes()[1] || '';
+  }
+  // 第三點：依類型顯示對應欄位
+  const t3 = ntVal('nt-note3Type');
+  document.getElementById('nt-correction-fields').classList.toggle('hidden', t3 !== 'correction');
+  document.getElementById('nt-note3-custom-field').classList.toggle('hidden', t3 !== 'custom');
+
+  const total = ntCreditors.reduce((s,c) => s + toNum(c.amount), 0);
+  const fee = document.getElementById('nt-noFee')?.checked ? 0 : NT_FEE;
+  document.getElementById('nt-total').textContent =
+    fmtNum(total) + ' 元' + (fee ? `（另扣手續費 ${fee} 元）` : '');
+
+  if (!ntNoteEdited) document.getElementById('nt-internalNote').value = ntBuildNote();
+  if (!document.getElementById('nt-page-preview').classList.contains('hidden')) ntRenderDoc();
+}
+
+// ---- 複製 ----
+function ntCopyDoc()  { copyRichText(ntDocText(), 'nt-copy-btn', '📋 一鍵複製公文'); }
+function ntCopyNote() { copyRichText(ntVal('nt-internalNote'), 'nt-note-copy-btn', '📋 複製對內備註'); }
 
 // Init
 renderPolicies();
