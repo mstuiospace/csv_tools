@@ -10,7 +10,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>法扣案件公文工具</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&display=swap" rel="stylesheet">
+<!-- 刻意不引用任何外部資源（含網路字型）：本工具需在無對外連線的環境下完整運作，
+     且不應因載入字型而向第三方發出任何請求。字型一律使用系統內建字體。 -->
 <style>
 :root {
   --navy: #1e2d5a;
@@ -30,7 +31,8 @@
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
-  font-family: 'Noto Serif TC', 'Georgia', serif;
+  /* 系統內建字體，不依賴任何外部字型資源 */
+  font-family: 'Microsoft JhengHei', 'PingFang TC', 'Heiti TC', 'Georgia', sans-serif;
   background: var(--bg);
   min-height: 100vh;
   color: var(--text);
@@ -425,7 +427,8 @@ textarea { resize: vertical; min-height: 70px; }
 
 /* Preview */
 .doc-text {
-  font-family: 'Noto Serif TC', serif;
+  /* 公文預覽用標楷體，與複製到 Word 後的呈現一致 */
+  font-family: '標楷體', 'DFKai-SB', serif;
   font-size: 14px; line-height: 2;
   white-space: pre-wrap; word-break: break-all;
   color: var(--text);
@@ -603,7 +606,7 @@ textarea { resize: vertical; min-height: 70px; }
     </div>
 
     <div class="home-footer">
-      <div class="home-footer-text">資料僅在本機處理，不上傳伺服器</div>
+      <div class="home-footer-text">案件資料全程在您的瀏覽器處理，不會傳送到任何伺服器</div>
       <div class="home-footer-name">© 2026 Miyabi · <span id="home-footer-version"></span></div>
     </div>
   </div>
@@ -704,6 +707,10 @@ textarea { resize: vertical; min-height: 70px; }
           <div class="full">
             <label class="field-label">債務人姓名</label>
             <input type="text" id="debtor" placeholder="王大明">
+          </div>
+          <div class="full">
+            <label class="field-label">公文文號 <span style="font-size:10px;color:var(--text-light);">（共15碼，會自動帶入對內備註與信封）</span></label>
+            <input type="text" id="docNum" placeholder="共15碼" maxlength="15" oninput="syncDocNum()">
           </div>
         </div>
       </div>
@@ -857,9 +864,10 @@ textarea { resize: vertical; min-height: 70px; }
       <div class="section">
         <div class="section-header"><span class="gold-dot"></span>✉️ 信封資訊</div>
         <div class="section-body">
-          <div class="alert-box alert-navy" style="margin-bottom:12px;">
-            <span>ℹ️</span>
-            <div>寄件人、單位、地址為固定內容，僅需填寫收件人與專員資訊</div>
+          <!-- 尚未設定寄件人時的引導提示 -->
+          <div id="sender-setup-hint" class="alert-box alert-red hidden" style="margin-bottom:12px;">
+            <span>⚠️</span>
+            <div>尚未設定寄件人資訊，信封的寄件人欄位會是空白。請先展開下方的「寄件人設定」填寫，只需設定一次。</div>
           </div>
           <div class="grid2">
             <div>
@@ -883,28 +891,52 @@ textarea { resize: vertical; min-height: 70px; }
               <input type="text" id="env-addr" placeholder="○○縣○○市○○路○號">
             </div>
             <div class="full">
-              <label class="field-label">公文字號</label>
-              <input type="text" id="env-docnum" value="9A00000" placeholder="9A00000xxxxxxxx（共15碼）" maxlength="15">
-            </div>
-            <div>
-              <label class="field-label">專員姓氏</label>
-              <input type="text" id="env-staff" placeholder="○">
-            </div>
-            <div>
-              <label class="field-label">專員分機</label>
-              <input type="text" id="env-ext" placeholder="○○○○○" maxlength="5">
+              <label class="field-label">公文字號 <span style="font-size:10px;color:var(--text-light);">（自動帶入填寫頁的文號，可在此另行修改）</span></label>
+              <input type="text" id="env-docnum" placeholder="共15碼" maxlength="15" oninput="markEnvDocNumEdited()">
             </div>
           </div>
           <div style="margin-top:14px;">
             <button class="primary-btn" style="margin-bottom:0;" onclick="printEnvelope()">🖨️ 列印信封</button>
           </div>
 
+          <details id="sender-settings" style="margin-top:14px;">
+            <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--navy);">🏢 寄件人設定（設定一次即可，會記在本機）</summary>
+            <div style="margin-top:10px;padding:12px;background:#f8f9fd;border-radius:8px;border:1px solid var(--border);">
+              <div class="alert-box alert-gold" style="margin-bottom:10px;">
+                <span>💡</span>
+                <div>這些是印在信封左側的寄件人資訊，各單位不同，故不寫在程式中。填寫後會儲存在你的瀏覽器，下次自動帶入，不會上傳。</div>
+              </div>
+              <div class="grid2">
+                <div class="full">
+                  <label class="field-label">寄件單位名稱</label>
+                  <input type="text" id="set-unit" placeholder="○○作業科○○組" oninput="saveSenderSettings()">
+                </div>
+                <div class="full">
+                  <label class="field-label">寄件地址</label>
+                  <input type="text" id="set-addr" placeholder="○○市○○區○○路○號○樓" oninput="saveSenderSettings()">
+                </div>
+                <div>
+                  <label class="field-label">單位電話</label>
+                  <input type="text" id="set-tel" value="07-" placeholder="07-00000000" oninput="saveSenderSettings()">
+                </div>
+                <div>
+                  <label class="field-label">專員姓氏</label>
+                  <input type="text" id="set-staff" placeholder="○" oninput="saveSenderSettings()">
+                </div>
+                <div>
+                  <label class="field-label">專員分機</label>
+                  <input type="text" id="set-ext" placeholder="○○○○○" maxlength="5" oninput="saveSenderSettings()">
+                </div>
+              </div>
+            </div>
+          </details>
+
           <details style="margin-top:14px;">
             <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--navy);">⚙️ 信封版面校正（套印對齊用）</summary>
             <div style="margin-top:10px;padding:12px;background:#f8f9fd;border-radius:8px;border:1px solid var(--border);">
               <div class="alert-box alert-gold" style="margin-bottom:10px;">
                 <span>💡</span>
-                <div>紙張比照範本設為 16K（197×273mm），信封的實際落點由送紙位置決定，與範本列印方式相同。若印出來的文字位置與信封版面有落差，請用下方偏移量微調（單位 mm），設定會自動記住，下次不用重調。</div>
+                <div>版型座標取自公司信封範本，並已內建實測補償（整體上移 20mm），一般情況直接列印即可、偏移量維持 0。若換了印表機或送紙方式導致位置有落差，再用下方偏移量微調（單位 mm），設定會自動記住。</div>
               </div>
               <div class="grid2" style="margin-bottom:10px;">
                 <div>
@@ -965,27 +997,57 @@ textarea { resize: vertical; min-height: 70px; }
 
 <!-- About Modal -->
 <div class="modal-overlay" id="about-modal" onclick="closeAbout(event)">
-  <div class="modal">
-    <div class="modal-title">法扣案件 <span class="modal-gold">公文套版工具</span></div>
-    <div class="modal-body">
+  <div class="modal" style="max-width:400px;max-height:85vh;overflow-y:auto;text-align:left;">
+    <div class="modal-title" style="text-align:center;">法扣案件 <span class="modal-gold">公文套版工具</span></div>
+    <div class="modal-body" style="text-align:center;">
       本工具為保全法扣作業專用<br>
-      所有資料僅在本機瀏覽器處理<br>
-      不上傳任何伺服器，個資安全無虞
+      案件資料全程在您的瀏覽器處理
     </div>
-    <div class="modal-version">
+
+    <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px;">
+      <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px;">🔒 資料處理方式</div>
+      <ul style="font-size:11.5px;color:var(--text-mid);line-height:1.85;padding-left:18px;margin:0;">
+        <li>純前端靜態網頁，<strong>無後端伺服器、無資料庫</strong></li>
+        <li>所有計算在您的瀏覽器中完成，<strong>不對外傳送任何資料</strong></li>
+        <li>不引用任何外部資源（含網路字型），<strong>零對外連線</strong></li>
+        <li>案件資料（債務人、保單、金額）<strong>不會被儲存</strong>，關閉頁面即消失</li>
+        <li>本機僅儲存兩項設定：信封版面校正值、寄件人資訊，<strong>不含任何案件資料</strong></li>
+        <li>寄件人資訊由使用者自行設定，<strong>程式碼不含任何機關資料</strong></li>
+      </ul>
+    </div>
+
+    <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:12px;">
+      <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px;">📋 更新紀錄</div>
+      <div style="font-size:11.5px;color:var(--text-mid);line-height:1.8;">
+        <div style="margin-bottom:8px;">
+          <strong>v1.4</strong>　2026-08-16<br>
+          移除所有外部連線；寄件人資訊改由使用者設定；公文文號可於首頁填寫並自動帶入對內備註與信封
+        </div>
+        <div style="margin-bottom:8px;">
+          <strong>v1.3</strong>　2026-08-12<br>
+          信封版型改依範本實測座標重建；明細表註記單筆時不編號；新增金額防呆檢查
+        </div>
+        <div>
+          <strong>v1.2</strong>　2026-08-08<br>
+          對內備註自動產生；日期自動帶入民國年月；解約金明細表格式調整
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-version" style="text-align:center;margin-top:12px;">
       © 2026 <strong>Miyabi</strong> · <span id="about-version"></span><br>
       <span style="font-size:10px;color:var(--text-light);">解約件 · 非解約件 · 清算件 · 介入權 · 縮小保額</span>
     </div>
     <br>
-    <button class="modal-close" onclick="closeAbout()">關閉</button>
+    <button class="modal-close" onclick="closeAbout()" style="display:block;margin:0 auto;">關閉</button>
   </div>
 </div>
 
 <script>
 // ===== VERSION / 版權資訊 =====
 // 本工具原創設計、開發：Miyabi。每次更新請同步修改這裡的版本號與日期。
-const APP_VERSION = 'v1.3';
-const APP_UPDATED = '2026-08-12';
+const APP_VERSION = 'v1.4';
+const APP_UPDATED = '2026-08-16';
 const APP_AUTHOR = 'Miyabi';
 console.log(`%c法扣案件公文套版工具 ${APP_VERSION}`, 'font-weight:bold;color:#c4973a;');
 console.log(`© 2026 ${APP_AUTHOR}．原創設計與開發．最後更新：${APP_UPDATED}`);
@@ -1550,13 +1612,17 @@ const ENV_BASE = {
   stampMM: 6, stampSizeMM: 20,
   zipMM: 6, zipBoxMM: 6.2,
 };
+// 實測補償：上表為範本 PDF 中相對於 Word 頁面頂端的座標，但實際套印到信封時
+// 整體還需上移 20mm 才會落在正確位置（2026-08 於公司印表機實測，三個區塊一致）。
+// 刻意與 PDF 座標分開記錄：日後範本若更新，PDF 座標照抄即可，此補償值獨立調整。
+const ENV_PRINT_OFFSET_Y = -20;
 // w/h 為列印紙張尺寸，與範本 PDF 一致；信封實際落點由印表機送紙位置決定
 const ENV_CALIB_DEFAULT = { w:ENV_PAPER.w, h:ENV_PAPER.h, addrDx:0, addrDy:0, nameDx:0, nameDy:0, senderDx:0, senderDy:0, guides:false };
 
 function loadEnvCalib() {
   let saved = {};
   // key 帶版本：每次變更版型基準（紙張尺寸／座標模型）時遞增，讓已存的舊校正值自動失效
-  try { saved = JSON.parse(localStorage.getItem('envCalibV3') || '{}'); } catch(e) {}
+  try { saved = JSON.parse(localStorage.getItem('envCalibV4') || '{}'); } catch(e) {}
   const c = Object.assign({}, ENV_CALIB_DEFAULT, saved);
   document.getElementById('env-cal-w').value = c.w;
   document.getElementById('env-cal-h').value = c.h;
@@ -1579,8 +1645,15 @@ function getEnvCalib() {
     guides: document.getElementById('env-cal-guides').checked,
   };
 }
-function saveEnvCalib() { localStorage.setItem('envCalibV3', JSON.stringify(getEnvCalib())); }
-function resetEnvCalib() { localStorage.removeItem('envCalibV3'); loadEnvCalib(); }
+// localStorage 在隱私模式或某些嵌入情境會被封鎖並拋出 SecurityError，
+// 寫入失敗只影響「記住設定」，不該中斷使用者正在進行的輸入，故一律吞掉錯誤
+function saveEnvCalib() {
+  try { localStorage.setItem('envCalibV4', JSON.stringify(getEnvCalib())); } catch(e) {}
+}
+function resetEnvCalib() {
+  try { localStorage.removeItem('envCalibV4'); } catch(e) {}
+  loadEnvCalib();
+}
 
 // ===== ENVELOPE RENDER（預覽與列印共用同一份版面，確保長相一致） =====
 function escapeHtml(s) {
@@ -1604,20 +1677,34 @@ function rotateNums(s, sidewaysFont) {
   });
 }
 function getEnvData() {
+  const sender = getSenderSettings();
   return {
     // 債務人即信封收件人：收件人欄未填時直接沿用債務人姓名
     name: document.getElementById('env-name').value || document.getElementById('debtor').value.trim() || '○○',
     zip: document.getElementById('env-zip').value || '000000',
     addr: document.getElementById('env-addr').value || '○○縣○○市○○路○號',
-    docnum: document.getElementById('env-docnum').value || '9A00000xxxxxxxx',
-    staff: document.getElementById('env-staff').value || '○',
-    ext: document.getElementById('env-ext').value || '○○○○○',
+    docnum: document.getElementById('env-docnum').value || '',
+    sender,   // 寄件人資訊來自使用者設定，程式不內建任何機關資料
     title: envTitle,
   };
 }
+// 寄件人各行的組法：欄位未填就整段略過，避免印出「　小姐」「電話」這種殘缺文字
+function senderLine1(s) {
+  return [s.unit, s.staff ? `${s.staff}小姐` : ''].filter(Boolean).join('　');
+}
+function senderLine3(s, docnum) {
+  // 公文編號與代表號用 Arial（比照範本），分機維持標楷體
+  const KAI = "'標楷體','DFKai-SB',serif";
+  const parts = [];
+  if (docnum) parts.push(rotateNums(docnum));
+  if (s.tel)  parts.push(rotateNums(`電話${s.tel}`));
+  if (s.ext)  parts.push(rotateNums(`（分機${s.ext}）`, KAI));
+  return parts.join(rotateNums('　'));
+}
+
 // 回傳信封版面的 HTML 片段（純 mm/pt 絕對定位），預覽與列印都用這份，只差在外層要不要縮放
 function buildEnvelopeHTML(data, calib) {
-  const { name, zip, addr, docnum, staff, ext, title } = data;
+  const { name, zip, addr, docnum, sender, title } = data;
   const B = ENV_BASE;
 
   // 直書欄位：以「中心線距紙張右緣」定位 —— right 先把元素右緣放到中心線上，
@@ -1625,14 +1712,14 @@ function buildEnvelopeHTML(data, calib) {
   // line-height:1 對應範本的排列（PDF 實測 18pt 地址的字距正好等於字級 6.35mm）。
   // dx 正值代表往右移。
   const col = (cfg, dx, dy, inner, extra = '') =>
-    `<div style="position:absolute;top:${cfg.top + dy}mm;right:${cfg.cx - dx}mm;`
+    `<div style="position:absolute;top:${cfg.top + ENV_PRINT_OFFSET_Y + dy}mm;right:${cfg.cx - dx}mm;`
     + `transform:translateX(50%);writing-mode:vertical-rl;line-height:1;`
     + `white-space:nowrap;font-size:${cfg.pt}pt;${extra}">${inner}</div>`;
 
   // 郵遞區號在範本中是「橫書」文字方塊（docx vert=horz），數字一律水平排列。
   // 不可套用直書欄的數字規則：超過 4 碼會觸發橫躺而往下延伸，撞到下方的地址欄。
   const zipHTML = calib.guides ? '' :
-    `<div style="position:absolute;top:${B.zip.top + calib.addrDy}mm;right:${B.zip.cx - calib.addrDx}mm;`
+    `<div style="position:absolute;top:${B.zip.top + ENV_PRINT_OFFSET_Y + calib.addrDy}mm;right:${B.zip.cx - calib.addrDx}mm;`
     + `transform:translateX(50%);line-height:1;white-space:nowrap;font-size:${B.zip.pt}pt;">${escapeHtml(zip)}</div>`;
 
   let guidesHTML = '';
@@ -1652,14 +1739,14 @@ function buildEnvelopeHTML(data, calib) {
     + `<span style="font-size:${B.name.titlePt}pt;">${rotateNums(title)}</span>　`
     + `<span style="font-size:${B.name.receivePt}pt;">收</span>`;
 
-  return `<div style="width:${calib.w}mm;height:${calib.h}mm;position:relative;overflow:hidden;background:#fff;font-family:'標楷體','Noto Serif TC',serif;">
+  return `<div style="width:${calib.w}mm;height:${calib.h}mm;position:relative;overflow:hidden;background:#fff;font-family:'標楷體','DFKai-SB',serif;">
     ${guidesHTML}
     ${zipHTML}
     ${col(B.addr, calib.addrDx, calib.addrDy, rotateNums(addr))}
     ${col(B.name, calib.nameDx, calib.nameDy, nameInner, 'font-weight:bold;')}
-    ${col(B.s1, calib.senderDx, calib.senderDy, rotateNums(`○○作業科○○組　${staff}小姐`), 'color:#444;')}
-    ${col(B.s2, calib.senderDx, calib.senderDy, rotateNums('○○市○○區○○路○號○樓'), 'color:#444;')}
-    ${col(B.s3, calib.senderDx, calib.senderDy, rotateNums(`${docnum}　電話07-0000000`) + rotateNums(`（分機${ext}）`, "'標楷體','Noto Serif TC',serif"), 'color:#444;')}
+    ${col(B.s1, calib.senderDx, calib.senderDy, rotateNums(senderLine1(sender)), 'color:#444;')}
+    ${col(B.s2, calib.senderDx, calib.senderDy, rotateNums(sender.addr), 'color:#444;')}
+    ${col(B.s3, calib.senderDx, calib.senderDy, senderLine3(sender, docnum), 'color:#444;')}
   </div>`;
 }
 
@@ -1742,6 +1829,46 @@ function prefillDates() {
   });
 }
 
+// ===== 公文文號同步（填寫頁 → 信封） =====
+// 文號在填寫頁輸入，信封欄位自動跟著帶入；但使用者若在信封那邊另行修改過，
+// 就不再覆蓋（同「對內備註」的手動編輯保護邏輯）
+let envDocNumManuallyEdited = false;
+function markEnvDocNumEdited() { envDocNumManuallyEdited = true; }
+function syncDocNum() {
+  const src = document.getElementById('docNum');
+  const dst = document.getElementById('env-docnum');
+  if (dst && !envDocNumManuallyEdited) dst.value = src.value;
+  updateInternalNoteAuto();   // 對內備註的「函覆…（文號）」也要同步
+}
+
+// ===== 寄件人設定 =====
+// 各單位的寄件人資訊（單位名稱、地址、代表號、專員、公文文號前綴）不寫在程式中，
+// 由使用者自行設定並僅儲存於本機瀏覽器，因此原始碼不含任何機關／公司資訊。
+const SENDER_FIELDS = ['unit','addr','tel','staff','ext'];
+const senderEl = k => document.getElementById('set-' + k);
+
+function getSenderSettings() {
+  const s = {};
+  SENDER_FIELDS.forEach(k => { s[k] = (senderEl(k)?.value || '').trim(); });
+  return s;
+}
+function saveSenderSettings() {
+  try { localStorage.setItem('senderSettings', JSON.stringify(getSenderSettings())); } catch(e) {}
+  updateSenderHint();
+}
+function loadSenderSettings() {
+  let s = {};
+  try { s = JSON.parse(localStorage.getItem('senderSettings') || '{}'); } catch(e) {}
+  SENDER_FIELDS.forEach(k => { if (s[k] && senderEl(k)) senderEl(k).value = s[k]; });
+  updateSenderHint();
+}
+// 未設定寄件人時，在信封區顯示引導提示
+function updateSenderHint() {
+  const s = getSenderSettings();
+  const notSet = !s.unit && !s.addr && !s.tel;
+  document.getElementById('sender-setup-hint')?.classList.toggle('hidden', !notSet);
+}
+
 // ===== 對內備註 自動產生 =====
 let internalNoteManuallyEdited = false;
 function markInternalNoteEdited() { internalNoteManuallyEdited = true; }
@@ -1782,15 +1909,19 @@ function buildAutoInternalNote() {
   }
 
   const note3Type = document.getElementById('note3Type').value;
+  // 「函覆」後面接本件公文文號，供對內查核；文號未填時就不加空括號
+  // 註：僅對內備註如此，公文內文與第三點預覽維持原本寫法
+  const dn = (document.getElementById('docNum')?.value || '').trim();
+  const 函覆 = dn ? `函覆（${dn}）` : '函覆';
   let thirdPointText = '';
   if (note3Type === 'cancel') {
-    thirdPointText = '准予撤銷扣押命令並副知本公司';
+    thirdPointText = `${函覆}准予撤銷扣押命令並副知本公司`;
   } else if (note3Type === 'no-control-main') {
     const num = document.getElementById('note3MainNum').value || '○';
-    thirdPointText = `函覆依函揭命令說明${num}未予控管`;
+    thirdPointText = `${函覆}依函揭命令說明${num}未予控管`;
   } else if (note3Type === 'no-control-title') {
     const num = document.getElementById('note3TitleNum').value || '○';
-    thirdPointText = `函覆依函揭命令主旨及說明${num}未予控管`;
+    thirdPointText = `${函覆}依函揭命令主旨及說明${num}未予控管`;
   } else if (note3Type === 'custom') {
     thirdPointText = document.getElementById('note3Custom').value || '';
   }
@@ -1826,7 +1957,9 @@ function copyInternalNote() {
 // Init
 renderPolicies();
 loadEnvCalib();
+loadSenderSettings();
 prefillDates();
+syncDocNum();   // 讓信封的文號與填寫頁一致
 // 第三點預設選最常用的「依函揭命令說明○未予控管」。
 // 這裡明確指定 value 而非只靠 HTML 的 selected：瀏覽器重新整理時會恢復上次的選擇，
 // 會把 selected 蓋掉。初始化後再呼叫 updateNote3 展開對應子欄位與預覽
