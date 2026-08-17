@@ -531,6 +531,19 @@ textarea { resize: vertical; min-height: 70px; }
 }
 .secondary-btn:hover { background: var(--bg); }
 
+/* 欄位標籤旁的小動作按鈕。不要拿 .secondary-btn 來用：那是整頁寬的按鈕
+   （width:100% + margin-bottom:20px），塞進一列裡會把旁邊的欄位擠爛 */
+.mini-btn {
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #fff; color: var(--navy);
+  font-family: inherit; font-weight: 700; font-size: 11px;
+  cursor: pointer; white-space: nowrap;
+  transition: all 0.15s;
+}
+.mini-btn:hover { background: var(--gold-pale); border-color: var(--gold); color: var(--navy); }
+
 /* About modal */
 .modal-overlay {
   display: none; position: fixed; inset: 0;
@@ -598,7 +611,7 @@ textarea { resize: vertical; min-height: 70px; }
       <div class="situation-card" onclick="openTool('非解約給付')">
         <div class="sit-icon">💰</div>
         <div class="sit-title">非解約給付</div>
-        <div class="sit-sub">生存險金／滿期金<br>紅利／返還保價／配息</div>
+        <div class="sit-sub">生存保險金／滿期保險金<br>紅利／返還保價／配息</div>
         <div class="sit-badge badge-testing">待測試</div>
       </div>
       <div class="situation-card coming-soon">
@@ -1027,6 +1040,7 @@ textarea { resize: vertical; min-height: 70px; }
     <div class="tabs">
       <button class="tab active" id="nt-tab-form" onclick="ntSwitchTab('form')">✏️ 填寫</button>
       <button class="tab inactive" id="nt-tab-preview" onclick="ntSwitchTab('preview')">📄 公文預覽</button>
+      <button class="tab inactive" id="nt-tab-env" onclick="ntSwitchTab('env')">✉️ 信封</button>
     </div>
 
     <!-- ===== 填寫 ===== -->
@@ -1227,6 +1241,53 @@ textarea { resize: vertical; min-height: 70px; }
       </div>
       <button class="secondary-btn" onclick="ntSwitchTab('form')">← 返回編輯</button>
     </div>
+
+    <!-- 信封：與解約件不同，收件人可能是法院或多個債權人，且一次要印多張 -->
+    <div id="nt-page-env" class="hidden">
+      <div class="section">
+        <div class="section-header"><span class="gold-dot"></span>✉️ 信封</div>
+        <div class="section-body">
+          <div id="nt-sender-hint" class="alert-box alert-red hidden" style="margin-bottom:12px;">
+            <span>⚠️</span>
+            <div>尚未設定寄件人資訊，信封的寄件人欄位會是空白。請先到「解約件」的信封區展開「寄件人設定」填寫，兩個情境共用同一份設定。</div>
+          </div>
+
+          <label class="field-label">寄送對象</label>
+          <div class="toggle-group" style="margin-bottom:14px;">
+            <button class="toggle-btn" id="nt-env-btn-court" onclick="ntSetEnvTarget('機關')">法院／執行機關</button>
+            <button class="toggle-btn active" id="nt-env-btn-creditor" onclick="ntSetEnvTarget('債權人')">債權人</button>
+          </div>
+
+          <div id="nt-env-list"></div>
+          <button class="add-btn" onclick="ntAddEnvelope()">＋ 新增收件人</button>
+
+          <details style="margin-top:14px;">
+            <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--navy);">📇 管理常用收件人</summary>
+            <div style="margin-top:10px;padding:12px;background:#f8f9fd;border-radius:8px;border:1px solid var(--border);">
+              <div class="alert-box alert-gold" style="margin-bottom:10px;">
+                <span>💡</span>
+                <div>常用收件人存在你的瀏覽器，不會上傳。法院與執行機關的地址屬公開資訊，程式不會連網查詢。</div>
+              </div>
+              <div id="nt-org-manager"></div>
+            </div>
+          </details>
+
+          <div style="margin-top:14px;">
+            <label class="field-label">公文字號 <span style="font-size:10px;color:var(--text-light);">（自動帶入填寫頁的文號，可在此另行修改）</span></label>
+            <input type="text" id="nt-env-docnum" placeholder="共15碼" maxlength="15" oninput="ntMarkEnvDocNumEdited()">
+          </div>
+
+          <div class="alert-box alert-gold" style="margin-top:14px;">
+            <span>💡</span>
+            <div>會依收件人張數一次輸出，每張各自成頁。收件人超過 4 字時，稱謂會自成一行排在左邊；<strong>在稱謂前面加空格可讓它往下移，一格＝一個字</strong>。版面與校正值與解約件共用，若需微調請到「解約件」的信封版面校正。</div>
+          </div>
+          <div style="margin-top:14px;">
+            <button class="primary-btn" style="margin-bottom:0;" onclick="ntPrintEnvelopes()" id="nt-env-print-btn">🖨️ 列印信封</button>
+          </div>
+        </div>
+      </div>
+      <button class="secondary-btn" onclick="ntSwitchTab('form')">← 返回編輯</button>
+    </div>
   </div><!-- /scenario-nonterm -->
   </div>
 </div>
@@ -1247,8 +1308,9 @@ textarea { resize: vertical; min-height: 70px; }
         <li>所有計算在您的瀏覽器中完成，<strong>不對外傳送任何資料</strong></li>
         <li>不引用任何外部資源（含網路字型），<strong>零對外連線</strong></li>
         <li>案件資料（債務人、保單、金額）<strong>不會被儲存</strong>，關閉頁面即消失</li>
-        <li>本機僅儲存兩項設定：信封版面校正值、寄件人資訊，<strong>不含任何案件資料</strong></li>
+        <li>本機僅儲存三項設定：信封版面校正值、寄件人資訊、常用收件人，<strong>不含任何案件資料</strong></li>
         <li>寄件人資訊由使用者自行設定，<strong>程式碼不含任何機關資料</strong></li>
+        <li>內建的法院／執行機關地址屬公開資訊，<strong>寫在檔案內，不會連網查詢</strong></li>
       </ul>
     </div>
 
@@ -1256,6 +1318,10 @@ textarea { resize: vertical; min-height: 70px; }
       <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:8px;">📋 更新紀錄</div>
       <!-- 只留最近四筆，新增一筆就把最舊的那筆刪掉 -->
       <div style="font-size:11.5px;color:var(--text-mid);line-height:1.8;">
+        <div style="margin-bottom:8px;">
+          <strong>v1.6</strong>　2026-08-18<br>
+          非解約給付新增信封，可一次列印多張；收件人可存為常用，並內建法院與執行機關地址
+        </div>
         <div style="margin-bottom:8px;">
           <strong>v1.5</strong>　2026-08-16<br>
           新增非解約給付情境，支援多債權人與匯款、支票並存；新增一鍵清空重填
@@ -1267,10 +1333,6 @@ textarea { resize: vertical; min-height: 70px; }
         <div style="margin-bottom:8px;">
           <strong>v1.3</strong>　2026-08-12<br>
           信封版型改依範本實測座標重建；明細表註記單筆時不編號；新增金額防呆檢查
-        </div>
-        <div>
-          <strong>v1.2</strong>　2026-08-08<br>
-          對內備註自動產生；日期自動帶入民國年月；解約金明細表格式調整
         </div>
       </div>
     </div>
@@ -1286,8 +1348,8 @@ textarea { resize: vertical; min-height: 70px; }
 <script>
 // ===== VERSION / 版權資訊 =====
 // 本工具原創設計、開發：Miyabi。每次更新請同步修改這裡的版本號與日期。
-const APP_VERSION = 'v1.5';
-const APP_UPDATED = '2026-08-16';
+const APP_VERSION = 'v1.6';
+const APP_UPDATED = '2026-08-18';
 const APP_AUTHOR = 'Miyabi';
 console.log(`%c法扣案件公文套版工具 ${APP_VERSION}`, 'font-weight:bold;color:#c4973a;');
 console.log(`© 2026 ${APP_AUTHOR}．原創設計與開發．最後更新：${APP_UPDATED}`);
@@ -1871,6 +1933,9 @@ const ENV_BASE = {
 //（換印表機不需要改這個值；印表機造成的偏移請用介面上的校正欄位處理）。
 // 刻意與 PDF 座標分開記錄：日後範本若更新，PDF 座標照抄即可，此值再另行以肉眼判斷。
 const ENV_PRINT_OFFSET_Y = -20;
+// 直書欄位距紙張下緣至少保留的空白（mm）。收件人與地址超過這個長度就自動折行，
+// 避免機關全銜（如「○○銀行股份有限公司債權管理部」）直接被紙張下緣切掉。
+const ENV_COL_BOTTOM_MM = 30;
 // w/h 為列印紙張尺寸，與範本 PDF 一致；信封實際落點由印表機送紙位置決定
 const ENV_CALIB_DEFAULT = { w:ENV_PAPER.w, h:ENV_PAPER.h, addrDx:0, addrDy:0, nameDx:0, nameDy:0, senderDx:0, senderDy:0, guides:false };
 
@@ -1971,6 +2036,15 @@ function buildEnvelopeHTML(data, calib) {
     + `transform:translateX(50%);writing-mode:vertical-rl;line-height:1;`
     + `white-space:nowrap;font-size:${cfg.pt}pt;${extra}">${inner}</div>`;
 
+  // 收件人與地址允許折行：機關全銜在單行會超出紙張下緣被切掉。直書的「下一行」落在
+  // 左邊 —— 收件人欄到寄件人欄之間有 47mm、地址欄到收件人欄之間有 42mm，都容得下。
+  // 寄件人三欄維持 nowrap：那幾行含 text-orientation:sideways 的數字，折行行為不可預期。
+  // extra 接在 col() 的樣式之後，故此處的 white-space 會覆蓋掉預設的 nowrap。
+  const wrapStyle = (cfg, dy) => {
+    const maxH = calib.h - (cfg.top + ENV_PRINT_OFFSET_Y + dy) - ENV_COL_BOTTOM_MM;
+    return `white-space:normal;max-height:${maxH.toFixed(1)}mm;`;
+  };
+
   // 郵遞區號在範本中是「橫書」文字方塊（docx vert=horz），數字一律水平排列。
   // 不可套用直書欄的數字規則：超過 4 碼會觸發橫躺而往下延伸，撞到下方的地址欄。
   const zipHTML = calib.guides ? '' :
@@ -1988,17 +2062,54 @@ function buildEnvelopeHTML(data, calib) {
       <div style="position:absolute;top:${B.zipMM}mm;right:${B.zipMM}mm;display:flex;flex-direction:row;gap:2px;">${zipBoxes}</div>`;
   }
 
-  // 姓名字距為 1em：PDF 實測 26pt 姓名的字距 18.38mm，約為字級 9.17mm 的兩倍
-  const nameInner =
-      `<span style="letter-spacing:1em;">${rotateNums(name)}</span>`
-    + `<span style="font-size:${B.name.titlePt}pt;">${rotateNums(title)}</span>　`
-    + `<span style="font-size:${B.name.receivePt}pt;">收</span>`;
+  // 姓名字距為 1em：PDF 實測 26pt 姓名的字距 18.38mm，約為字級 9.17mm 的兩倍。
+  // 但那是照個人姓名（3～4 字）量的，機關全銜（如「○○銀行債權管理部」）套上去會整個
+  // 散開、往下撞到別的欄位，故超過 4 字就不加字距。
+  // 收件人的排法分兩種，以 4 字為界：
+  //
+  // 個人姓名（4 字以內）→ 完全照範本：單欄，姓名（26pt＋字距）＋稱謂（22pt）＋收（24pt）。
+  //   這是實測過的版面，不要動。
+  //
+  // 機關全銜（超過 4 字）→ 收件人與聯絡人各自成欄，各自定位。
+  //   為什麼不靠自動折行：折行點由字數決定、不管語意，會把「黃小姐」拆成「…黃」「小姐」；
+  //   而且折行點常落在稱謂前面，行首的空白一律被瀏覽器丟掉，導致無法用空格微調位置。
+  //   改成各自定位後，斷行位置變成語意上的（機關結束、聯絡人開始），垂直位移也變成
+  //   可以直接指定的數值，不再受折行行為擺布。
+  const PT2MM = 25.4 / 72;
+  const isOrg = [...name].length > 4;
+  const lead = (title.match(/^[ 　]+/) || [''])[0].length;  // 稱謂前的空格數＝往下移幾個字
+  const titleText = title.replace(/^[ 　]+/, '');
+
+  let nameHTML;
+  if (!isOrg) {
+    const inner =
+        `<span style="letter-spacing:1em;">${rotateNums(name)}</span>`
+      + `<span style="font-size:${B.name.titlePt}pt;">${rotateNums(titleText)}</span>　`
+      + `<span style="font-size:${B.name.receivePt}pt;">收</span>`;
+    nameHTML = col(B.name, calib.nameDx, calib.nameDy, inner,
+                   'font-weight:bold;' + wrapStyle(B.name, calib.nameDy));
+  } else {
+    // 機關全銜統一降到稱謂的字級：26pt 的長全銜一欄放不下，且與聯絡人同級才不會出現
+    // 「同一列字忽大忽小」的違和感（原本 26/22/24 的階層是為個人姓名＋稱謂設計的）
+    const pt = B.name.titlePt;
+    const chMM = pt * PT2MM;                       // 一個字的寬（＝欄距）與高
+    const cfgName  = { ...B.name, pt };
+    // cx 越大越靠左：聯絡人排在機關全銜的左邊，符合直書由右往左的閱讀順序
+    const cfgTitle = { ...B.name, pt, cx: B.name.cx + chMM, top: B.name.top + lead * chMM };
+    nameHTML =
+        col(cfgName, calib.nameDx, calib.nameDy,
+            rotateNums(name) + (titleText ? '' : '　收'),
+            'font-weight:bold;' + wrapStyle(cfgName, calib.nameDy))
+      + (titleText
+          ? col(cfgTitle, calib.nameDx, calib.nameDy, rotateNums(titleText) + '　收', 'font-weight:bold;')
+          : '');
+  }
 
   return `<div style="width:${calib.w}mm;height:${calib.h}mm;position:relative;overflow:hidden;background:#fff;font-family:'標楷體','DFKai-SB',serif;">
     ${guidesHTML}
     ${zipHTML}
-    ${col(B.addr, calib.addrDx, calib.addrDy, rotateNums(addr))}
-    ${col(B.name, calib.nameDx, calib.nameDy, nameInner, 'font-weight:bold;')}
+    ${col(B.addr, calib.addrDx, calib.addrDy, rotateNums(addr), wrapStyle(B.addr, calib.addrDy))}
+    ${nameHTML}
     ${col(B.s1, calib.senderDx, calib.senderDy, rotateNums(senderLine1(sender)), 'color:#444;')}
     ${col(B.s2, calib.senderDx, calib.senderDy, rotateNums(sender.addr), 'color:#444;')}
     ${col(B.s3, calib.senderDx, calib.senderDy, senderLine3(sender, docnum), 'color:#444;')}
@@ -2044,9 +2155,15 @@ function printDetail() {
 }
 
 // ===== PRINT ENVELOPE（套印版：只印文字，底圖／logo 為公司信封既有印刷；與預覽共用同一份版面） =====
-function printEnvelope() {
+// 收多份資料一次輸出，每張各自成頁：非解約給付可能同時寄給多個債權人。
+// 解約件只有一份收件人，傳單一元素的陣列即可，兩者共用這支。
+function printEnvelopes(dataList) {
+  if (!dataList.length) { alert('請先填寫至少一位收件人。'); return; }
   const calib = getEnvCalib();
-  const inner = buildEnvelopeHTML(getEnvData(), calib);
+  // 最後一頁不加分頁，否則多數瀏覽器會多吐一張空白
+  const pages = dataList.map((d, i) =>
+    `<div style="${i < dataList.length - 1 ? 'page-break-after:always;' : ''}">${buildEnvelopeHTML(d, calib)}</div>`
+  ).join('');
 
   const win = window.open('', '_blank', 'width=600,height=900');
   if (!win) {
@@ -2059,15 +2176,16 @@ function printEnvelope() {
       * { box-sizing: border-box; margin: 0; padding: 0; }
       @media print {
         @page { size: ${calib.w}mm ${calib.h}mm; margin: 0; }
-        body { width: ${calib.w}mm; height: ${calib.h}mm; }
+        body { width: ${calib.w}mm; }
       }
     </style>
   </head><body>
-    ${inner}
+    ${pages}
     <script>window.onload=()=>{ setTimeout(()=>window.print(),300); }<\/script>
   </body></html>`);
   win.document.close();
 }
+function printEnvelope() { printEnvelopes([getEnvData()]); }
 
 // ===== DOWNLOAD DETAIL PDF (已廢棄，改用列印) =====
 async function downloadDetailPDF() { printDetail(); }
@@ -2122,6 +2240,7 @@ function updateSenderHint() {
   const s = getSenderSettings();
   const notSet = !s.unit && !s.addr && !s.tel;
   document.getElementById('sender-setup-hint')?.classList.toggle('hidden', !notSet);
+  document.getElementById('nt-sender-hint')?.classList.toggle('hidden', !notSet);
 }
 
 // ===== 對內備註 自動產生 =====
@@ -2233,6 +2352,7 @@ function ntInit() {
   }
   ntRenderTypes();
   ntRenderCreditors();
+  ntRenderEnvelopes();
   ntPrefillDate();
   ntUpdate();
 }
@@ -2245,11 +2365,18 @@ function ntPrefillDate() {
   });
 }
 function ntSwitchTab(t) {
-  ['form','preview'].forEach(n => {
+  ['form','preview','env'].forEach(n => {
     document.getElementById('nt-page-'+n).classList.toggle('hidden', n!==t);
     document.getElementById('nt-tab-'+n).className = 'tab ' + (n===t?'active':'inactive');
   });
   if (t === 'preview') ntRenderDoc();
+  if (t === 'env') {
+    // 文號自動跟著填寫頁，除非使用者在信封這邊另行改過（同解約件的保護邏輯）
+    const el = document.getElementById('nt-env-docnum');
+    if (!ntEnvDocNumEdited) el.value = ntVal('nt-docNum');
+    updateSenderHint();
+    ntRenderEnvelopes();
+  }
 }
 const ntVal = id => (document.getElementById(id)?.value || '').trim();
 
@@ -2443,6 +2570,163 @@ function ntUpdate() {
   if (!document.getElementById('nt-page-preview').classList.contains('hidden')) ntRenderDoc();
 }
 
+// ---- 信封 ----
+// 與解約件的差異：收件人可能是法院，也可能是多個債權人，且兩者不會並存
+// （寄法院就不寄債權人）。故改為可自行增減的清單，一次輸出多張。
+// 內建的法院／執行機關清單。地址屬公開資訊，**寫死在檔案裡**，絕不對外連線查詢，
+// 以維持「零對外連線」的定位。
+// ⚠️ 只放經使用者確認過的資料 —— 地址錯了就是雙掛號的支票寄丟，不要憑記憶填。
+const ENV_PRESET_ORGS = [
+  { name:'臺灣臺北地方法院',         zip:'100206', addr:'臺北市中正區博愛路131號' },
+  { name:'臺灣臺北地方法院民事執行處', zip:'100206', addr:'臺北市中正區博愛路131號' },
+  { name:'臺灣高雄地方法院',         zip:'800012', addr:'高雄市新興區中正三路25號9、10樓' },
+  { name:'臺灣高雄地方法院民事執行處', zip:'800012', addr:'高雄市新興區中正三路25號9、10樓' },
+];
+// 使用者自存的常用收件人，存 localStorage，與內建清單分開管理
+const ENV_ORGS_KEY = 'envOrgsV1';
+function loadCustomOrgs() {
+  try { return JSON.parse(localStorage.getItem(ENV_ORGS_KEY) || '[]'); } catch(e) { return []; }
+}
+function saveCustomOrgs(list) {
+  try { localStorage.setItem(ENV_ORGS_KEY, JSON.stringify(list)); } catch(e) {}
+}
+
+let ntEnvTarget = '債權人';
+let ntEnvelopes = [{ name:'', title:'', zip:'', addr:'' }];
+let ntEnvDocNumEdited = false;
+function ntMarkEnvDocNumEdited() { ntEnvDocNumEdited = true; }
+
+// t 為 '機關'（法院／行政執行分署等）或 '債權人'，兩者不會並存
+function ntSetEnvTarget(t) {
+  ntEnvTarget = t;
+  document.getElementById('nt-env-btn-court').className = 'toggle-btn' + (t==='機關'?' active':'');
+  document.getElementById('nt-env-btn-creditor').className = 'toggle-btn' + (t==='債權人'?' active':'');
+  // 切到債權人且清單還是空的，就把領支票的債權人姓名帶進來省一次輸入；
+  // 已經填過的內容不動，避免蓋掉使用者的資料
+  if (t === '債權人' && ntEnvelopes.every(e => !e.name && !e.zip && !e.addr)) {
+    const names = ntCreditors.filter(c => c.pay === '支票').map(c => c.name.trim()).filter(Boolean);
+    if (names.length) ntEnvelopes = names.map(n => ({ name:n, title:'', zip:'', addr:'' }));
+  }
+  ntRenderEnvelopes();
+}
+function ntRenderEnvelopes() {
+  document.getElementById('nt-env-list').innerHTML = ntEnvelopes.map((e,i) => `
+    <div class="policy-card">
+      <div class="policy-header">
+        <span class="policy-num">收件人 ${i+1}</span>
+        ${ntEnvelopes.length>1 ? `<button class="remove-btn" onclick="ntRemoveEnvelope(${i})">✕</button>` : ''}
+      </div>
+      <div class="grid2">
+        <div class="full">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+            <label class="field-label" style="margin:0;">常用收件人</label>
+            <button class="mini-btn" onclick="ntSaveOrg(${i})">＋ 存為常用</button>
+          </div>
+          <select onchange="ntApplyOrg(${i}, this.value); this.selectedIndex=0;">
+            ${ntOrgOptions()}
+          </select>
+        </div>
+        <div>
+          <label class="field-label">收件人</label>
+          <input type="text" value="${escapeHtml(e.name)}" placeholder="${ntEnvTarget==='機關'?'○○地方法院／○○分署':'○○銀行'}"
+                 oninput="ntSetEnvelope(${i},'name',this.value)" style="width:100%">
+        </div>
+        <div>
+          <label class="field-label">稱謂 <span style="font-size:10px;color:var(--text-light);">（可留空）</span></label>
+          <input type="text" value="${escapeHtml(e.title)}" placeholder="先生／小姐／啟"
+                 oninput="ntSetEnvelope(${i},'title',this.value)" style="width:100%">
+        </div>
+        <div>
+          <label class="field-label">郵遞區號</label>
+          <input type="text" value="${escapeHtml(e.zip)}" placeholder="○○○" inputmode="numeric"
+                 oninput="ntSetEnvelope(${i},'zip',this.value)" style="width:100%">
+        </div>
+        <div></div>
+        <div class="full">
+          <label class="field-label">地址</label>
+          <input type="text" value="${escapeHtml(e.addr)}" placeholder="○○縣○○市○○路○號"
+                 oninput="ntSetEnvelope(${i},'addr',this.value)" style="width:100%">
+        </div>
+      </div>
+    </div>`).join('');
+  const btn = document.getElementById('nt-env-print-btn');
+  if (btn) btn.textContent = `🖨️ 列印信封（${ntEnvelopes.length} 張）`;
+  ntRenderOrgManager();
+}
+// 選單內容：內建清單與自存清單分成兩組，讓使用者看得出哪些是自己加的
+function ntOrgOptions() {
+  const opt = (o, src) =>
+    `<option value="${src}:${escapeHtml(o.name)}">${escapeHtml(o.name)}</option>`;
+  const custom = loadCustomOrgs();
+  let html = '<option value="">（選擇後自動帶入名稱、郵遞區號與地址）</option>';
+  if (ENV_PRESET_ORGS.length)
+    html += `<optgroup label="法院／執行機關">${ENV_PRESET_ORGS.map(o => opt(o,'p')).join('')}</optgroup>`;
+  if (custom.length)
+    html += `<optgroup label="我存的常用">${custom.map(o => opt(o,'c')).join('')}</optgroup>`;
+  return html;
+}
+function ntApplyOrg(i, key) {
+  if (!key) return;
+  const [src, name] = [key.slice(0,1), key.slice(2)];
+  const o = (src === 'p' ? ENV_PRESET_ORGS : loadCustomOrgs()).find(x => x.name === name);
+  if (!o) return;
+  // 只帶入名稱與地址，稱謂不動 —— 同一個機關的聯絡人每件可能不同
+  Object.assign(ntEnvelopes[i], { name:o.name, zip:o.zip || '', addr:o.addr || '' });
+  ntRenderEnvelopes();
+}
+function ntSaveOrg(i) {
+  const e = ntEnvelopes[i];
+  const name = e.name.trim();
+  if (!name) { alert('請先填寫收件人名稱，再存為常用。'); return; }
+  const list = loadCustomOrgs();
+  const at = list.findIndex(x => x.name === name);
+  const entry = { name, zip:e.zip.trim(), addr:e.addr.trim() };
+  if (at >= 0) {
+    if (!confirm(`「${name}」已在常用清單中，要用目前的郵遞區號與地址覆蓋嗎？`)) return;
+    list[at] = entry;
+  } else {
+    list.push(entry);
+  }
+  saveCustomOrgs(list);
+  ntRenderEnvelopes();
+}
+function ntDeleteOrg(name) {
+  if (!confirm(`確定從常用清單移除「${name}」？`)) return;
+  saveCustomOrgs(loadCustomOrgs().filter(x => x.name !== name));
+  ntRenderEnvelopes();
+}
+function ntRenderOrgManager() {
+  const list = loadCustomOrgs();
+  const box = document.getElementById('nt-org-manager');
+  if (!box) return;
+  box.innerHTML = list.length
+    ? list.map(o => `
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);">
+          <div style="flex:1;font-size:12px;">
+            <div style="font-weight:700;color:var(--navy);">${escapeHtml(o.name)}</div>
+            <div style="color:var(--text-light);">${escapeHtml(o.zip)} ${escapeHtml(o.addr)}</div>
+          </div>
+          <button class="remove-btn" onclick="ntDeleteOrg('${escapeHtml(o.name).replace(/'/g,"\\'")}')">✕</button>
+        </div>`).join('')
+    : '<div style="font-size:12px;color:var(--text-light);">還沒有存過常用收件人。在上面填好名稱與地址後按「＋ 存為常用」即可。</div>';
+}
+
+function ntAddEnvelope() { ntEnvelopes.push({ name:'', title:'', zip:'', addr:'' }); ntRenderEnvelopes(); }
+function ntRemoveEnvelope(i) { ntEnvelopes.splice(i,1); ntRenderEnvelopes(); }
+function ntSetEnvelope(i,k,v) { ntEnvelopes[i][k] = v; }
+function ntPrintEnvelopes() {
+  const sender = getSenderSettings();
+  const docnum = ntVal('nt-env-docnum');
+  printEnvelopes(ntEnvelopes.map(e => ({
+    name:  e.name.trim() || '○○',
+    zip:   e.zip.trim()  || '000000',
+    addr:  e.addr.trim() || '○○縣○○市○○路○號',
+    // 只去尾端空白：開頭的空格是使用者用來把稱謂往下推的，trim() 會把它砍掉
+    title: e.title.replace(/\s+$/, ''),
+    docnum, sender,
+  })));
+}
+
 // ---- 複製 ----
 function ntCopyDoc()  { copyRichText(ntDocText(), 'nt-copy-btn', '📋 一鍵複製公文'); }
 function ntCopyNote() { copyRichText(ntVal('nt-internalNote'), 'nt-note-copy-btn', '📋 複製對內備註'); }
@@ -2476,9 +2760,14 @@ function clearCase() {
     ntCreditors.push({ name:'', amount:'', pay:'匯款' });
     ntNoteEdited = false;
     ntSubjectEdited = false;
+    ntEnvDocNumEdited = false;
+    ntEnvelopes.length = 0;
+    ntEnvelopes.push({ name:'', title:'', zip:'', addr:'' });
+    ntEnvTarget = '債權人';
     // 清空後 select 已回到第一個選項，這裡再明確指定一次預設值
     document.getElementById('nt-note2Type').value = 'close';
     document.getElementById('nt-note3Type').value = 'none';
+    ntSetEnvTarget('債權人');
     ntRenderTypes();
     ntRenderCreditors();
     ntPrefillDate();
