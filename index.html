@@ -1252,14 +1252,11 @@ textarea { resize: vertical; min-height: 70px; }
             <div>尚未設定寄件人資訊，信封的寄件人欄位會是空白。請先到「解約件」的信封區展開「寄件人設定」填寫，兩個情境共用同一份設定。</div>
           </div>
 
-          <label class="field-label">寄送對象</label>
-          <div class="toggle-group" style="margin-bottom:14px;">
-            <button class="toggle-btn" id="nt-env-btn-court" onclick="ntSetEnvTarget('機關')">法院／執行機關</button>
-            <button class="toggle-btn active" id="nt-env-btn-creditor" onclick="ntSetEnvTarget('債權人')">債權人</button>
-          </div>
-
           <div id="nt-env-list"></div>
-          <button class="add-btn" onclick="ntAddEnvelope()">＋ 新增收件人</button>
+          <div style="display:flex;gap:8px;">
+            <button class="add-btn" onclick="ntAddEnvelope()" style="flex:1;">＋ 新增收件人</button>
+            <button class="add-btn hidden" id="nt-env-fill-btn" onclick="ntFillFromCreditors()" style="flex:1;"></button>
+          </div>
 
           <details style="margin-top:14px;">
             <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--navy);">📇 管理常用收件人</summary>
@@ -2591,22 +2588,22 @@ function saveCustomOrgs(list) {
   try { localStorage.setItem(ENV_ORGS_KEY, JSON.stringify(list)); } catch(e) {}
 }
 
-let ntEnvTarget = '債權人';
 let ntEnvelopes = [{ name:'', title:'', zip:'', addr:'' }];
 let ntEnvDocNumEdited = false;
 function ntMarkEnvDocNumEdited() { ntEnvDocNumEdited = true; }
 
-// t 為 '機關'（法院／行政執行分署等）或 '債權人'，兩者不會並存
-function ntSetEnvTarget(t) {
-  ntEnvTarget = t;
-  document.getElementById('nt-env-btn-court').className = 'toggle-btn' + (t==='機關'?' active':'');
-  document.getElementById('nt-env-btn-creditor').className = 'toggle-btn' + (t==='債權人'?' active':'');
-  // 切到債權人且清單還是空的，就把領支票的債權人姓名帶進來省一次輸入；
-  // 已經填過的內容不動，避免蓋掉使用者的資料
-  if (t === '債權人' && ntEnvelopes.every(e => !e.name && !e.zip && !e.addr)) {
-    const names = ntCreditors.filter(c => c.pay === '支票').map(c => c.name.trim()).filter(Boolean);
-    if (names.length) ntEnvelopes = names.map(n => ({ name:n, title:'', zip:'', addr:'' }));
-  }
+// 領支票的債權人姓名帶進收件人清單。
+// 原本這是「寄送對象」切換的副作用，但那個切換不影響任何輸出，只是逼使用者做一個
+// 不改變結果的決定；而且它只在清單全空時才生效，藏得太深。改成明確的動作按鈕。
+function ntCheckCreditorNames() {
+  return ntCreditors.filter(c => c.pay === '支票').map(c => c.name.trim()).filter(Boolean);
+}
+function ntFillFromCreditors() {
+  const names = ntCheckCreditorNames();
+  if (!names.length) return;
+  const hasData = ntEnvelopes.some(e => e.name || e.zip || e.addr);
+  if (hasData && !confirm(`目前已填的收件人會被取代為 ${names.length} 位領支票的債權人，確定嗎？`)) return;
+  ntEnvelopes = names.map(n => ({ name:n, title:'', zip:'', addr:'' }));
   ntRenderEnvelopes();
 }
 function ntRenderEnvelopes() {
@@ -2628,7 +2625,7 @@ function ntRenderEnvelopes() {
         </div>
         <div>
           <label class="field-label">收件人</label>
-          <input type="text" value="${escapeHtml(e.name)}" placeholder="${ntEnvTarget==='機關'?'○○地方法院／○○分署':'○○銀行'}"
+          <input type="text" value="${escapeHtml(e.name)}" placeholder="○○銀行／○○地方法院"
                  oninput="ntSetEnvelope(${i},'name',this.value)" style="width:100%">
         </div>
         <div>
@@ -2651,6 +2648,13 @@ function ntRenderEnvelopes() {
     </div>`).join('');
   const btn = document.getElementById('nt-env-print-btn');
   if (btn) btn.textContent = `🖨️ 列印信封（${ntEnvelopes.length} 張）`;
+  // 只有真的有領支票的債權人時才顯示帶入按鈕，沒有就不佔版面
+  const fill = document.getElementById('nt-env-fill-btn');
+  if (fill) {
+    const n = ntCheckCreditorNames().length;
+    fill.classList.toggle('hidden', n === 0);
+    fill.textContent = `⟳ 帶入領支票的債權人（${n} 位）`;
+  }
   ntRenderOrgManager();
 }
 // 選單內容：內建清單與自存清單分成兩組，讓使用者看得出哪些是自己加的
@@ -2763,11 +2767,10 @@ function clearCase() {
     ntEnvDocNumEdited = false;
     ntEnvelopes.length = 0;
     ntEnvelopes.push({ name:'', title:'', zip:'', addr:'' });
-    ntEnvTarget = '債權人';
     // 清空後 select 已回到第一個選項，這裡再明確指定一次預設值
     document.getElementById('nt-note2Type').value = 'close';
     document.getElementById('nt-note3Type').value = 'none';
-    ntSetEnvTarget('債權人');
+    ntRenderEnvelopes();
     ntRenderTypes();
     ntRenderCreditors();
     ntPrefillDate();
