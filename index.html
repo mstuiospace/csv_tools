@@ -327,6 +327,22 @@ textarea { resize: vertical; min-height: 70px; }
   border-color: var(--gold);
   box-shadow: 0 2px 6px rgba(196,151,58,0.3);
 }
+.type-choice-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.type-choice {
+  display:flex; align-items:center; gap:9px; width:100%; padding:11px 12px;
+  border:1px solid var(--border); border-radius:8px; background:#fff;
+  color:var(--navy); font-family:inherit; font-size:13px; text-align:left; cursor:pointer;
+}
+.type-choice:hover { border-color:var(--navy); }
+.type-choice.active { border-color:var(--gold); background:rgba(197,143,22,0.09); font-weight:700; }
+.type-check {
+  width:19px; height:19px; flex:0 0 19px; border:2px solid #aeb8cf; border-radius:4px;
+  display:flex; align-items:center; justify-content:center; font-size:12px; color:#fff;
+}
+.type-choice.active .type-check { background:var(--gold); border-color:var(--gold); }
+.type-choice-group-muted .type-choice { opacity:.48; }
+.type-choice-divider { margin:14px 0 8px; padding-top:12px; border-top:1px solid var(--border); font-size:12px; color:var(--text-mid); }
+@media(max-width:600px) { .type-choice-grid { grid-template-columns:1fr; } }
 
 /* Policy card */
 .policy-card {
@@ -675,12 +691,6 @@ textarea { resize: vertical; min-height: 70px; }
     <!-- ===== FORM TAB ===== -->
     <div id="page-form">
 
-      <!-- 密等提醒 -->
-      <div class="alert-box alert-navy">
-        <span>🔒</span>
-        <div><strong>密等提醒：</strong>對內 → <strong>密件＋最速件</strong>｜對外 → <strong>普通</strong></div>
-      </div>
-
       <!-- 給付方式 -->
       <div class="section">
         <div class="section-header"><span class="gold-dot"></span>給付方式</div>
@@ -693,11 +703,11 @@ textarea { resize: vertical; min-height: 70px; }
           <div id="remit-fields" class="grid2">
             <div>
               <label class="field-label">匯款日期</label>
-              <input type="text" id="remitDate" placeholder="115年4月13日" oninput="updateInternalNoteAuto()">
+              <input type="text" id="remitDate" placeholder="115年4月13日" oninput="updateInternalNoteAuto();updatePaymentDetailsHints()">
             </div>
             <div>
               <label class="field-label">匯入帳戶／法院專戶</label>
-              <input type="text" id="account" placeholder="臺灣屏東地方法院307乙專戶">
+              <input type="text" id="account" placeholder="臺灣屏東地方法院307乙專戶" oninput="updatePaymentDetailsHints()">
             </div>
           </div>
 
@@ -705,11 +715,11 @@ textarea { resize: vertical; min-height: 70px; }
             <div class="grid2">
               <div>
                 <label class="field-label">開票日期</label>
-                <input type="text" id="checkDate" placeholder="11○年○月○日" oninput="updateInternalNoteAuto()">
+                <input type="text" id="checkDate" placeholder="11○年○月○日" oninput="updateInternalNoteAuto();updatePaymentDetailsHints()">
               </div>
               <div>
                 <label class="field-label">逕送對象</label>
-                <select id="checkTarget" onchange="toggleCustomTarget()">
+                <select id="checkTarget" onchange="toggleCustomTarget();updatePaymentDetailsHints()">
                   <option value="鈞院">鈞院</option>
                   <option value="鈞署">鈞署</option>
                   <option value="債權人">債權人</option>
@@ -720,7 +730,7 @@ textarea { resize: vertical; min-height: 70px; }
             </div>
             <div id="customTargetField" class="hidden" style="margin-top:10px;">
               <label class="field-label">自填逕送對象</label>
-              <input type="text" id="customTarget" placeholder="請填入逕送對象">
+              <input type="text" id="customTarget" placeholder="請填入逕送對象" oninput="updatePaymentDetailsHints()">
             </div>
           </div>
         </div>
@@ -765,6 +775,7 @@ textarea { resize: vertical; min-height: 70px; }
             <span>💡</span>
             <div>本案包含多種幣別，外幣保單已自動設為匯款，請確認各保單的給付方式。如遇退匯，可依實際處理結果調整給付方式、日期及對內備註。</div>
           </div>
+          <div id="payment-details-hints"></div>
           <button class="add-btn" onclick="addPolicy()">＋ 新增保單</button>
           <div class="total-bar">
             <span class="label">合計實領金額</span>
@@ -861,6 +872,11 @@ textarea { resize: vertical; min-height: 70px; }
 
     <!-- ===== PREVIEW TAB ===== -->
     <div id="page-preview" class="hidden">
+      <div class="alert-box alert-navy">
+        <span>🔒</span>
+        <div><strong>密等提醒：</strong>對內 → <strong>密件＋最速件</strong>｜對外 → <strong>普通</strong></div>
+      </div>
+      <div id="payment-preview-hints"></div>
       <div class="section">
         <div class="section-header"><span class="gold-dot"></span>公文內文</div>
         <div class="section-body">
@@ -915,6 +931,11 @@ textarea { resize: vertical; min-height: 70px; }
             <span>⚠️</span>
             <div>尚未設定寄件人資訊，信封的寄件人欄位會是空白。請先展開下方的「寄件人設定」填寫，只需設定一次。</div>
           </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;gap:8px;">
+            <label class="field-label" style="margin:0;">常用收件人</label>
+            <button class="mini-btn" onclick="envSaveOrg()">＋ 存為常用</button>
+          </div>
+          <select id="env-org-select" onchange="envApplyOrg(this.value);this.selectedIndex=0;" style="margin-bottom:12px;"></select>
           <div class="grid2">
             <div>
               <label class="field-label">收件人姓名</label>
@@ -944,6 +965,13 @@ textarea { resize: vertical; min-height: 70px; }
           <div style="margin-top:14px;">
             <button class="primary-btn" style="margin-bottom:0;" onclick="printEnvelope()">🖨️ 列印信封</button>
           </div>
+          <details style="margin-top:14px;">
+            <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--navy);">📇 管理常用收件人</summary>
+            <div style="margin-top:10px;padding:12px;background:#f8f9fd;border-radius:8px;border:1px solid var(--border);">
+              <div style="font-size:12px;color:var(--text-mid);margin-bottom:8px;">解約件與非解約件共用同一份清單；只存名稱、郵遞區號與地址，不會自動改變稱謂。</div>
+              <div id="env-org-manager"></div>
+            </div>
+          </details>
 
           <div id="sender-current-summary" class="alert-box alert-navy hidden" style="margin-top:14px;margin-bottom:0;">
             <span>🏢</span><div id="sender-current-summary-text"></div>
@@ -1021,21 +1049,8 @@ textarea { resize: vertical; min-height: 70px; }
             </div>
           </details>
 
-          <details style="margin-top:14px;">
-            <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--navy);">💾 設定備份與還原</summary>
-            <div style="margin-top:10px;padding:12px;background:#f8f9fd;border-radius:8px;border:1px solid var(--border);">
-              <div class="alert-box alert-gold" style="margin-bottom:10px;">
-                <span>💡</span>
-                <div>設定會自動記在目前的瀏覽器。若清除瀏覽資料或更換電腦，設定可能消失，建議下載一份備份。備份只包含寄件人、信封校正及自行新增的常用收件人，不包含任何案件資料，也不會上傳。</div>
-              </div>
-              <div class="grid2">
-                <button class="secondary-btn" style="margin:0;" onclick="downloadSettingsBackup()">⬇️ 下載設定備份</button>
-                <button class="secondary-btn" style="margin:0;" onclick="chooseSettingsBackup()">⬆️ 從備份檔還原</button>
-              </div>
-              <input type="file" id="settings-backup-file" accept="application/json,.json" class="hidden" onchange="restoreSettingsBackup(this.files[0]);this.value=''">
-              <div id="settings-backup-status" style="font-size:12px;color:var(--text-mid);margin-top:10px;"></div>
-            </div>
-          </details>
+          <button class="secondary-btn" style="margin:14px 0 0;" onclick="showSettingsBackup()">💾 備份／還原寄件人及信封設定（含常用收件人）</button>
+          <div style="font-size:12px;color:var(--text-mid);margin-top:7px;">平時使用不受影響。若可能清除瀏覽紀錄或更換電腦，建議先備份目前設定。</div>
         </div>
       </div>
 
@@ -1071,11 +1086,6 @@ textarea { resize: vertical; min-height: 70px; }
 
     <!-- ===== 填寫 ===== -->
     <div id="nt-page-form">
-      <div class="alert-box alert-navy">
-        <span>🔒</span>
-        <div><strong>密等提醒：</strong>對內 → <strong>密件＋最速件</strong>｜對外 → <strong>普通</strong></div>
-      </div>
-
       <!-- 給付日期：給付方式跟著各債權人，同一案可能匯款與支票並存，故兩個日期都可填 -->
       <div class="section">
         <div class="section-header"><span class="gold-dot"></span>給付日期</div>
@@ -1102,43 +1112,39 @@ textarea { resize: vertical; min-height: 70px; }
         <div class="section-header"><span class="gold-dot"></span>案件基本資訊</div>
         <div class="section-body grid2">
           <div class="full">
-            <label class="field-label">法院／署別</label>
-            <select id="nt-courtType" onchange="ntUpdate()">
-              <option value="鈞院">鈞院（地方法院）</option>
-              <option value="鈞署">鈞署（行政執行署）</option>
-            </select>
-          </div>
-          <div>
-            <label class="field-label">命令日期</label>
-            <input type="text" id="nt-courtDate" placeholder="11○年○月○日" oninput="ntUpdate()">
-          </div>
-          <div>
-            <label class="field-label">執行命令字號</label>
-            <input type="text" id="nt-orderNum" placeholder="北院○○司執○字第○號" oninput="ntUpdate()">
+            <label class="field-label">回函公文文號 <span style="font-size:10px;color:var(--text-light);">（共15碼）</span></label>
+            <input type="text" id="nt-docNum" placeholder="共15碼" maxlength="15" oninput="ntUpdate()">
           </div>
           <div class="full">
             <label class="field-label">債務人姓名</label>
             <input type="text" id="nt-debtor" placeholder="王大明" oninput="ntUpdate()">
           </div>
           <div class="full">
-            <label class="field-label">公文文號 <span style="font-size:10px;color:var(--text-light);">（共15碼）</span></label>
-            <input type="text" id="nt-docNum" placeholder="共15碼" maxlength="15" oninput="ntUpdate()">
+            <label class="field-label">來文法院／執行機關</label>
+            <select id="nt-courtType" onchange="ntUpdate()">
+              <option value="鈞院">鈞院（地方法院）</option>
+              <option value="鈞署">鈞署（行政執行署）</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">執行命令日期</label>
+            <input type="text" id="nt-courtDate" placeholder="11○年○月○日" oninput="ntUpdate()">
+          </div>
+          <div>
+            <label class="field-label">執行命令字號</label>
+            <input type="text" id="nt-orderNum" placeholder="北院○○司執○字第○號" oninput="ntUpdate()">
           </div>
         </div>
       </div>
 
-      <!-- 給付類型 -->
+      <!-- 給付項目 -->
       <div class="section">
-        <div class="section-header"><span class="gold-dot"></span>給付類型 <span class="density-badge" style="margin-left:auto;">可複選</span></div>
+        <div class="section-header"><span class="gold-dot"></span>給付項目（可複選）</div>
         <div class="section-body">
-          <div class="alert-box alert-gold" style="margin-bottom:10px;">
-            <span>💡</span>
-            <div>可複選；選兩種以上會以「及」串接。若來文用的是概括寫法，可直接選「已得請領保險金」或自填。</div>
-          </div>
-          <div id="nt-types" class="cur-group"></div>
+          <div id="nt-types"></div>
           <div id="nt-type-custom-field" class="hidden" style="margin-top:10px;">
-            <label class="field-label">自填給付類型</label>
-            <input type="text" id="nt-typeCustom" placeholder="請填入給付類型名稱" oninput="ntUpdate()">
+            <label class="field-label">來文使用的其他名稱</label>
+            <input type="text" id="nt-typeCustom" placeholder="請填入給付項目名稱" oninput="ntUpdate()">
           </div>
         </div>
       </div>
@@ -1153,6 +1159,7 @@ textarea { resize: vertical; min-height: 70px; }
               債權人名稱有填就用名稱（例：至國泰世華銀行指定帳號）；未填則依人數，三人以上才寫數字。</div>
           </div>
           <div id="nt-creditors"></div>
+          <div id="nt-payment-details-hints"></div>
           <button class="add-btn" onclick="ntAddCreditor()">＋ 新增債權人</button>
           <div class="total-bar">
             <span class="label">給付總額</span>
@@ -1246,6 +1253,11 @@ textarea { resize: vertical; min-height: 70px; }
 
     <!-- ===== 公文預覽 ===== -->
     <div id="nt-page-preview" class="hidden">
+      <div class="alert-box alert-navy">
+        <span>🔒</span>
+        <div><strong>密等提醒：</strong>對內 → <strong>密件＋最速件</strong>｜對外 → <strong>普通</strong></div>
+      </div>
+      <div id="nt-payment-preview-hints"></div>
       <div class="section">
         <div class="section-header"><span class="gold-dot"></span>公文內文</div>
         <div class="section-body">
@@ -1294,6 +1306,8 @@ textarea { resize: vertical; min-height: 70px; }
               <div id="nt-org-manager"></div>
             </div>
           </details>
+          <button class="secondary-btn" style="margin:14px 0 0;" onclick="showSettingsBackup()">💾 備份／還原寄件人及信封設定（含常用收件人）</button>
+          <div style="font-size:12px;color:var(--text-mid);margin-top:7px;">平時使用不受影響。若可能清除瀏覽紀錄或更換電腦，建議先備份目前設定。</div>
 
           <div style="margin-top:14px;">
             <label class="field-label">公文字號 <span style="font-size:10px;color:var(--text-light);">（自動帶入填寫頁的文號，可在此另行修改）</span></label>
@@ -1342,6 +1356,10 @@ textarea { resize: vertical; min-height: 70px; }
       <!-- 只留最近四筆，新增一筆就把最舊的那筆刪掉 -->
       <div style="font-size:11.5px;color:var(--text-mid);line-height:1.8;">
         <div style="margin-bottom:8px;">
+          <strong>v1.9</strong>　2026-08-22<br>
+          手續費不再被系統自動清除或搬移；給付資料未完整時可一鍵回到正確欄位；解約件加入常用收件人；重新整理非解約給付項目與共用設定備份介面
+        </div>
+        <div style="margin-bottom:8px;">
           <strong>v1.8</strong>　2026-08-22<br>
           解約件支援多幣別與每張保單分別選擇匯款或支票；公文自動列出實際手續費；新增「無有效保單」第三點選項；可下載及還原寄件人、信封校正與自存常用收件人設定
         </div>
@@ -1352,10 +1370,6 @@ textarea { resize: vertical; min-height: 70px; }
         <div style="margin-bottom:8px;">
           <strong>v1.6</strong>　2026-08-18<br>
           非解約給付新增信封，可一次列印多張；收件人可存為常用、一鍵帶入領支票的債權人，並內建法院與執行機關地址
-        </div>
-        <div style="margin-bottom:8px;">
-          <strong>v1.5</strong>　2026-08-16<br>
-          新增非解約給付情境，支援多債權人與匯款、支票並存；新增一鍵清空重填
         </div>
       </div>
     </div>
@@ -1368,10 +1382,28 @@ textarea { resize: vertical; min-height: 70px; }
   </div>
 </div>
 
+<!-- 共用設定備份視窗：解約與非解約信封頁都開啟同一份內容 -->
+<div class="modal-overlay" id="settings-backup-modal" onclick="closeSettingsBackup(event)">
+  <div class="modal" style="max-width:560px;text-align:left;">
+    <div class="modal-title" style="text-align:center;">備份／還原寄件人及信封設定</div>
+    <div class="modal-body" style="text-align:left;line-height:1.8;">
+      平時使用不受影響。若可能清除瀏覽紀錄或更換電腦，建議先備份目前設定。<br>
+      <span style="font-size:12px;color:var(--text-light);">備份包含寄件人、信封校正及自行新增的常用收件人；不包含任何案件資料，也不會上傳。</span>
+    </div>
+    <div class="grid2">
+      <button class="secondary-btn" style="margin:0;" onclick="downloadSettingsBackup()">⬇️ 備份目前設定</button>
+      <button class="secondary-btn" style="margin:0;" onclick="chooseSettingsBackup()">⬆️ 讀取以前的設定</button>
+    </div>
+    <input type="file" id="settings-backup-file" accept="application/json,.json" class="hidden" onchange="restoreSettingsBackup(this.files[0]);this.value=''">
+    <div id="settings-backup-status" style="font-size:12px;color:var(--text-mid);margin-top:10px;"></div>
+    <button class="modal-close" onclick="closeSettingsBackup()">關閉</button>
+  </div>
+</div>
+
 <script>
 // ===== VERSION / 版權資訊 =====
 // 本工具原創設計、開發：Miyabi。每次更新請同步修改這裡的版本號與日期。
-const APP_VERSION = 'v1.8';
+const APP_VERSION = 'v1.9';
 const APP_UPDATED = '2026-08-22';
 const APP_AUTHOR = 'Miyabi';
 console.log(`%c法扣案件公文套版工具 ${APP_VERSION}`, 'font-weight:bold;color:#c4973a;');
@@ -1379,7 +1411,7 @@ console.log(`© 2026 ${APP_AUTHOR}．原創設計與開發．最後更新：${AP
 
 // ===== STATE =====
 let payMethod = '匯款'; // 保留作為批次操作的最後選擇；實際輸出以每張保單的 pay 為準
-let policies = [{ name:'', number:'', amount:'', currency:'新臺幣', loan:'0', advance:'0', fee:'250', pay:'匯款' }];
+let policies = [{ name:'', number:'', amount:'', currency:'新臺幣', loan:'0', advance:'0', fee:'250', feeEdited:false, pay:'匯款' }];
 let extraParas = [];
 const CURRENCIES = ['新臺幣','美元','澳幣','人民幣'];
 const SYM = {'新臺幣':'元','美元':'美元','澳幣':'澳幣','人民幣':'人民幣'};
@@ -1436,6 +1468,14 @@ function setPayMethod(m) {
   syncPaySections();
   updateInternalNoteAuto();
 }
+function showSettingsBackup() {
+  updateSettingsBackupStatus();
+  document.getElementById('settings-backup-modal').classList.add('show');
+}
+function closeSettingsBackup(e) {
+  if (!e || e.target === document.getElementById('settings-backup-modal'))
+    document.getElementById('settings-backup-modal').classList.remove('show');
+}
 function policyPay(p) { return p.pay === '支票' && p.currency === '新臺幣' ? '支票' : '匯款'; }
 function hasPayMethod(m) { return policies.some(p => policyPay(p) === m); }
 function syncPaySections() {
@@ -1445,6 +1485,7 @@ function syncPaySections() {
   document.getElementById('check-fields').classList.toggle('hidden', !hasCheck);
   document.getElementById('btn-remit').className = 'toggle-btn' + (hasRemit && !hasCheck ? ' active' : '');
   document.getElementById('btn-check').className = 'toggle-btn' + (hasCheck && !hasRemit ? ' active' : '');
+  updatePaymentDetailsHints();
 }
 function setPolicyPay(idx, method) {
   policies[idx].pay = method === '支票' && policies[idx].currency === '新臺幣' ? '支票' : '匯款';
@@ -1455,6 +1496,46 @@ function setPolicyPay(idx, method) {
 function toggleCustomTarget() {
   const v = document.getElementById('checkTarget').value;
   document.getElementById('customTargetField').classList.toggle('hidden', v !== '自填');
+}
+
+function terminationPaymentIssues() {
+  const issues = [];
+  if (hasPayMethod('匯款')) {
+    const missing = [];
+    if (!parseMinguoDate(document.getElementById('remitDate').value)) missing.push('匯款日期');
+    if (!document.getElementById('account').value.trim()) missing.push('匯入帳戶／法院專戶');
+    if (missing.length) issues.push({ method:'匯款', missing });
+  }
+  if (hasPayMethod('支票')) {
+    const missing = [];
+    if (!parseMinguoDate(document.getElementById('checkDate').value)) missing.push('開票日期');
+    if (document.getElementById('checkTarget').value === '自填' && !document.getElementById('customTarget').value.trim()) missing.push('自填逕送對象');
+    if (missing.length) issues.push({ method:'支票', missing });
+  }
+  return issues;
+}
+function paymentIssueHtml(issue, preview = false) {
+  const action = preview ? '返回填寫' : `前往填寫${issue.method}資料`;
+  return `<div class="alert-box alert-red" style="margin-bottom:10px;"><span>⚠️</span><div style="flex:1;">
+    ${issue.method}資料尚未完整，請補填：${issue.missing.join('、')}。
+    <button class="mini-btn" style="display:block;margin-top:7px;" onclick="goToPaymentDetails('${issue.method}')">${action}</button>
+  </div></div>`;
+}
+function updatePaymentDetailsHints() {
+  const issues = terminationPaymentIssues();
+  const form = document.getElementById('payment-details-hints');
+  const preview = document.getElementById('payment-preview-hints');
+  if (form) form.innerHTML = issues.map(i => paymentIssueHtml(i)).join('');
+  if (preview) preview.innerHTML = issues.map(i => paymentIssueHtml(i, true)).join('');
+}
+function goToPaymentDetails(method) {
+  switchTab('form');
+  const id = method === '支票' ? 'checkDate' : 'remitDate';
+  setTimeout(() => {
+    const el = document.getElementById(id);
+    el?.scrollIntoView({ behavior:'smooth', block:'center' });
+    el?.focus();
+  }, 50);
 }
 
 // ===== HELPERS =====
@@ -1538,6 +1619,16 @@ function renderAmountWarnings() {
   document.querySelectorAll('.policy-fee-warning').forEach(el =>
     el.classList.toggle('hidden', !duplicateFee)
   );
+  const hasTwd = policies.some(p => p.currency === '新臺幣');
+  document.querySelectorAll('.foreign-fee-review').forEach(el => {
+    const idx = Number(el.dataset.index);
+    const p = policies[idx];
+    const show = p && p.currency !== '新臺幣' && toNum(p.fee) > 0;
+    el.classList.toggle('hidden', !show);
+    if (show) el.querySelector('.foreign-fee-review-text').textContent = hasTwd
+      ? '本案已有新臺幣保單。一般情況優先由新臺幣保單扣除手續費；系統已保留您輸入的外幣金額，請依實際作業結果確認。'
+      : '外幣手續費已保留，請確認為實際換算後的金額（可含小數）。';
+  });
 }
 
 function validatePolicyNum(el) {
@@ -1556,19 +1647,18 @@ function setCurrency(idx, cur) {
   if (policies[idx].currency === cur) return;
   policies[idx].currency = cur;
   if (cur !== '新臺幣') {
-    policies[idx].fee = '';
+    // 未被使用者改過的 250 是新臺幣預設值，切為外幣時才可清空。
+    if (!policies[idx].feeEdited) policies[idx].fee = '';
     policies[idx].pay = '匯款';
+  } else if (!policies[idx].feeEdited && !policies.some((p, i) => i !== idx && (toNum(p.fee) > 0 || p.feeEdited))) {
+    policies[idx].fee = '250';
   }
-
-  // 只要案件中有新臺幣保單，250 元優先放在第一張新臺幣保單。
-  const twdIdx = policies.findIndex(p => p.currency === '新臺幣');
-  if (twdIdx >= 0 && !policies.some(p => p.currency === '新臺幣' && toNum(p.fee) > 0)) {
-    policies.forEach((p, i) => { p.fee = i === twdIdx ? '250' : (p.currency === '新臺幣' ? '0' : ''); });
-  }
+  // 幣別變更不得清除、搬移或覆蓋使用者已輸入的手續費。
   renderPolicies();
 }
 function updatePolicyField(idx, field, val) {
   policies[idx][field] = val;
+  if (field === 'fee') policies[idx].feeEdited = true;
   updateTotal();
 }
 function updateTotal() {
@@ -1626,6 +1716,9 @@ function renderPolicies() {
           <div class="policy-fee-warning alert-box alert-red hidden" style="margin-top:8px;padding:8px 10px;">
             <span>⚠️</span><div>同一債務人最多只扣一次手續費，請只保留一張保單的手續費金額</div>
           </div>
+          <div class="foreign-fee-review alert-box alert-gold hidden" data-index="${i}" style="margin-top:8px;padding:8px 10px;">
+            <span>💡</span><div class="foreign-fee-review-text"></div>
+          </div>
         </div>
       </div>`;
     c.appendChild(div);
@@ -1636,19 +1729,14 @@ function renderPolicies() {
   syncPaySections();
 }
 function addPolicy() {
-  // 新增保單預設新臺幣；只有案件原本沒有新臺幣保單時才帶入 250 元。
+  // 已有任何手續費時，絕不清除或搬移原金額，新保單預設 0。
   const hasTwd = policies.some(p => p.currency === '新臺幣');
-  if (!hasTwd) policies.forEach(p => { p.fee = ''; });
-  policies.push({ name:'', number:'', amount:'', currency:'新臺幣', loan:'0', advance:'0', fee:hasTwd?'0':'250', pay:'匯款' });
+  const hasFeeDecision = policies.some(p => toNum(p.fee) > 0 || p.feeEdited);
+  policies.push({ name:'', number:'', amount:'', currency:'新臺幣', loan:'0', advance:'0', fee:(!hasTwd && !hasFeeDecision)?'250':'0', feeEdited:false, pay:'匯款' });
   renderPolicies();
 }
 function removePolicy(idx) {
-  const removedFee = toNum(policies[idx]?.fee) > 0;
   policies.splice(idx,1);
-  if (removedFee) {
-    const twdIdx = policies.findIndex(p => p.currency === '新臺幣');
-    if (twdIdx >= 0) policies[twdIdx].fee = '250';
-  }
   renderPolicies();
 }
 
@@ -1808,6 +1896,7 @@ function generateDocTable() {
 
 // ===== PREVIEW =====
 function generatePreview() {
+  updatePaymentDetailsHints();
   const debtor = document.getElementById('debtor').value || '○○';
   const debtorSurname = debtor.charAt(0);
   const courtDate = document.getElementById('courtDate').value || '○年○月○日';
@@ -2385,8 +2474,8 @@ function updateSettingsBackupStatus() {
   let dirty = true;
   try { dirty = localStorage.getItem(SETTINGS_BACKUP_DIRTY_KEY) !== '0'; } catch(e) {}
   el.textContent = dirty
-    ? '目前設定尚未備份，或備份後又有更新。'
-    : '目前設定已下載備份。';
+    ? '平時使用不受影響。若可能清除瀏覽紀錄或更換電腦，建議先備份目前設定。'
+    : '已備份一份設定檔。日後設定有更新時，可以再備份一次。';
   el.style.color = dirty ? '#9a5b00' : '#24733e';
 }
 function settingsBackupData() {
@@ -2461,6 +2550,7 @@ function restoreSettingsBackup(file) {
       SENDER_FIELDS.forEach(k => { if (senderEl(k)) senderEl(k).value = sender[k]; });
       loadEnvCalib();
       updateSenderHint();
+      renderEnvOrgPicker();
       if (document.getElementById('nt-env-list')) ntRenderEnvelopes();
       setSettingsBackupDirty(false);
       alert('設定已還原完成。列印信封前，請先確認寄件人與套印位置。');
@@ -2580,11 +2670,12 @@ function copyInternalNote() {
 // ===================== 情境：非解約給付 =====================
 // 與解約件的差異：無明細表、無信封；改為「多債權人各一筆金額、各自匯款或支票」。
 // 命名一律加 nt- 前綴，與解約件的邏輯完全隔離，避免兩情境互相牽動。
-const NT_TYPES = ['生存保險金','滿期保險金','返還保價金','紅利保險金','已得請領保險金','自填'];
+const NT_TYPES = ['生存保險金','滿期保險金','返還保價金','紅利保險金'];
 const NT_FEE = 250;
 
 let ntCreditors = [{ name:'', amount:'', pay:'匯款' }];
 let ntSelectedTypes = [];
+let ntTypeMode = 'specific'; // specific：個別項目／generic：已得請領保險金／custom：自填
 let ntNoteEdited = false;      // 對內備註是否被手動改過
 let ntSubjectEdited = false;   // 主旨是否被手動改過
 
@@ -2627,22 +2718,44 @@ function ntSwitchTab(t) {
 }
 const ntVal = id => (document.getElementById(id)?.value || '').trim();
 
-// ---- 給付類型（可複選，含自填）----
+// ---- 給付項目：四項可複選，統稱與自填為另一種寫法 ----
 function ntRenderTypes() {
-  document.getElementById('nt-types').innerHTML = NT_TYPES.map(t =>
-    `<button class="cur-btn${ntSelectedTypes.includes(t)?' active':''}" onclick="ntToggleType('${t}')">${t}</button>`
-  ).join('');
+  const specific = NT_TYPES.map(t => {
+    const active = ntSelectedTypes.includes(t);
+    return `<button class="type-choice${active?' active':''}" onclick="ntToggleType('${t}')"><span class="type-check">${active?'✓':''}</span>${t}</button>`;
+  }).join('');
+  document.getElementById('nt-types').innerHTML = `
+    <div class="type-choice-grid${ntTypeMode === 'specific' ? '' : ' type-choice-group-muted'}">${specific}</div>
+    <div class="type-choice-divider">法院來文若使用統稱，可直接選擇：</div>
+    <button class="type-choice${ntTypeMode==='generic'?' active':''}" onclick="ntSetTypeMode('generic')"><span class="type-check">${ntTypeMode==='generic'?'✓':''}</span>已得請領保險金</button>
+    ${ntTypeMode==='generic' ? '<div style="font-size:12px;color:var(--text-mid);margin:7px 0 0 28px;">目前依來文使用統稱，上方個別項目不會寫入公文。</div>' : ''}
+    <div class="type-choice-divider">來文使用其他名稱：</div>
+    <button class="type-choice${ntTypeMode==='custom'?' active':''}" onclick="ntSetTypeMode('custom')"><span class="type-check">${ntTypeMode==='custom'?'✓':''}</span>自行填寫</button>`;
   document.getElementById('nt-type-custom-field')
-    .classList.toggle('hidden', !ntSelectedTypes.includes('自填'));
+    .classList.toggle('hidden', ntTypeMode !== 'custom');
 }
 function ntToggleType(t) {
+  if (ntTypeMode !== 'specific') {
+    ntTypeMode = 'specific';
+    if (!ntSelectedTypes.includes(t)) ntSelectedTypes.push(t);
+    ntRenderTypes();
+    ntUpdate();
+    return;
+  }
   const i = ntSelectedTypes.indexOf(t);
   if (i >= 0) ntSelectedTypes.splice(i,1); else ntSelectedTypes.push(t);
   ntRenderTypes();
   ntUpdate();
 }
+function ntSetTypeMode(mode) {
+  ntTypeMode = ntTypeMode === mode ? 'specific' : mode;
+  ntRenderTypes();
+  ntUpdate();
+}
 function ntTypeText() {
-  const list = ntSelectedTypes.map(t => t === '自填' ? ntVal('nt-typeCustom') : t).filter(Boolean);
+  if (ntTypeMode === 'generic') return '已得請領保險金';
+  if (ntTypeMode === 'custom') return ntVal('nt-typeCustom') || '○○保險金';
+  const list = ntSelectedTypes.filter(Boolean);
   if (!list.length) return '○○保險金';
   // 公文慣例：三項以上時前面用頓號相連，只有最後一項用「及」
   if (list.length === 1) return list[0];
@@ -2684,6 +2797,37 @@ function ntSetCreditor(i, k, v) {
   ntCreditors[i][k] = v;
   if (k === 'pay') ntRenderCreditors();   // 需重繪以更新按鈕的選取狀態
   ntUpdate();
+}
+function ntPaymentIssues() {
+  const issues = [];
+  if (ntCreditors.some(c => c.pay === '匯款') && !parseMinguoDate(ntVal('nt-remitDate')))
+    issues.push({ method:'匯款', missing:['匯款日期'] });
+  if (ntCreditors.some(c => c.pay === '支票') && !parseMinguoDate(ntVal('nt-checkDate')))
+    issues.push({ method:'支票', missing:['開票日期'] });
+  return issues;
+}
+function ntPaymentIssueHtml(issue, preview = false) {
+  const action = preview ? '返回填寫' : `前往填寫${issue.method}資料`;
+  return `<div class="alert-box alert-red" style="margin-bottom:10px;"><span>⚠️</span><div style="flex:1;">
+    ${issue.method}資料尚未完整，請補填：${issue.missing.join('、')}。
+    <button class="mini-btn" style="display:block;margin-top:7px;" onclick="goToNtPaymentDetails('${issue.method}')">${action}</button>
+  </div></div>`;
+}
+function updateNtPaymentDetailsHints() {
+  const issues = ntPaymentIssues();
+  const form = document.getElementById('nt-payment-details-hints');
+  const preview = document.getElementById('nt-payment-preview-hints');
+  if (form) form.innerHTML = issues.map(i => ntPaymentIssueHtml(i)).join('');
+  if (preview) preview.innerHTML = issues.map(i => ntPaymentIssueHtml(i, true)).join('');
+}
+function goToNtPaymentDetails(method) {
+  ntSwitchTab('form');
+  const id = method === '支票' ? 'nt-checkDate' : 'nt-remitDate';
+  setTimeout(() => {
+    const el = document.getElementById(id);
+    el?.scrollIntoView({ behavior:'smooth', block:'center' });
+    el?.focus();
+  }, 50);
 }
 
 // 依實務寫法組出收款對象：有名稱就列名稱，否則用人數（兩人以內不寫數字）
@@ -2757,6 +2901,7 @@ function ntMarkSubjectEdited() {
   document.getElementById('nt-doc-content').textContent = ntDocText();
 }
 function ntRenderDoc() {
+  updateNtPaymentDetailsHints();
   const subj = document.getElementById('nt-subject');
   if (!ntSubjectEdited) subj.value = ntBuildSubject();
   document.getElementById('nt-doc-content').textContent = ntDocText();
@@ -2814,6 +2959,7 @@ function ntUpdate() {
     fmtNum(total) + ' 元' + (fee ? `（另扣手續費 ${fee} 元）` : '');
 
   if (!ntNoteEdited) document.getElementById('nt-internalNote').value = ntBuildNote();
+  updateNtPaymentDetailsHints();
   if (!document.getElementById('nt-page-preview').classList.contains('hidden')) ntRenderDoc();
 }
 
@@ -2837,6 +2983,70 @@ function loadCustomOrgs() {
 function saveCustomOrgs(list) {
   try { localStorage.setItem(ENV_ORGS_KEY, JSON.stringify(list)); } catch(e) {}
   markSettingsBackupOutdated();
+}
+function findOrgByKey(key) {
+  if (!key) return null;
+  const src = key.slice(0,1), name = key.slice(2);
+  return (src === 'p' ? ENV_PRESET_ORGS : loadCustomOrgs()).find(x => x.name === name) || null;
+}
+function renderEnvOrgPicker() {
+  const select = document.getElementById('env-org-select');
+  if (select) select.innerHTML = ntOrgOptions();
+  renderEnvOrgManager();
+}
+function envApplyOrg(key) {
+  const o = findOrgByKey(key);
+  if (!o) return;
+  // 只帶入名稱與地址，先生／小姐不動，避免機關或不同承辦人被套用錯誤稱謂。
+  document.getElementById('env-name').value = o.name;
+  document.getElementById('env-zip').value = o.zip || '';
+  document.getElementById('env-addr').value = o.addr || '';
+}
+function saveOrgEntry(entry) {
+  const list = loadCustomOrgs();
+  const at = list.findIndex(x => x.name === entry.name);
+  if (at >= 0) {
+    if (!confirm(`「${entry.name}」已在常用清單中，要用目前的郵遞區號與地址覆蓋嗎？`)) return false;
+    list[at] = entry;
+  } else {
+    list.push(entry);
+  }
+  saveCustomOrgs(list);
+  renderEnvOrgPicker();
+  return true;
+}
+function envSaveOrg() {
+  const name = document.getElementById('env-name').value.trim();
+  if (!name) { alert('請先填寫收件人姓名，再存為常用。'); return; }
+  saveOrgEntry({
+    name,
+    zip:document.getElementById('env-zip').value.trim(),
+    addr:document.getElementById('env-addr').value.trim()
+  });
+}
+function deleteCustomOrgAt(index) {
+  const list = loadCustomOrgs();
+  const o = list[index];
+  if (!o || !confirm(`確定從常用清單移除「${o.name}」？`)) return;
+  list.splice(index, 1);
+  saveCustomOrgs(list);
+  renderEnvOrgPicker();
+  ntRenderEnvelopes();
+}
+function orgManagerHtml(list) {
+  return list.length ? list.map((o, i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);">
+      <div style="flex:1;font-size:12px;">
+        <div style="font-weight:700;color:var(--navy);">${escapeHtml(o.name)}</div>
+        <div style="color:var(--text-light);">${escapeHtml(o.zip)} ${escapeHtml(o.addr)}</div>
+      </div>
+      <button class="remove-btn" onclick="deleteCustomOrgAt(${i})">✕</button>
+    </div>`).join('')
+    : '<div style="font-size:12px;color:var(--text-light);">還沒有存過常用收件人。填好名稱與地址後按「＋ 存為常用」即可。</div>';
+}
+function renderEnvOrgManager() {
+  const box = document.getElementById('env-org-manager');
+  if (box) box.innerHTML = orgManagerHtml(loadCustomOrgs());
 }
 
 let ntEnvelopes = [{ name:'', title:'', zip:'', addr:'' }];
@@ -2921,9 +3131,7 @@ function ntOrgOptions() {
   return html;
 }
 function ntApplyOrg(i, key) {
-  if (!key) return;
-  const [src, name] = [key.slice(0,1), key.slice(2)];
-  const o = (src === 'p' ? ENV_PRESET_ORGS : loadCustomOrgs()).find(x => x.name === name);
+  const o = findOrgByKey(key);
   if (!o) return;
   // 只帶入名稱與地址，稱謂不動 —— 同一個機關的聯絡人每件可能不同
   Object.assign(ntEnvelopes[i], { name:o.name, zip:o.zip || '', addr:o.addr || '' });
@@ -2933,37 +3141,14 @@ function ntSaveOrg(i) {
   const e = ntEnvelopes[i];
   const name = e.name.trim();
   if (!name) { alert('請先填寫收件人名稱，再存為常用。'); return; }
-  const list = loadCustomOrgs();
-  const at = list.findIndex(x => x.name === name);
   const entry = { name, zip:e.zip.trim(), addr:e.addr.trim() };
-  if (at >= 0) {
-    if (!confirm(`「${name}」已在常用清單中，要用目前的郵遞區號與地址覆蓋嗎？`)) return;
-    list[at] = entry;
-  } else {
-    list.push(entry);
-  }
-  saveCustomOrgs(list);
-  ntRenderEnvelopes();
-}
-function ntDeleteOrg(name) {
-  if (!confirm(`確定從常用清單移除「${name}」？`)) return;
-  saveCustomOrgs(loadCustomOrgs().filter(x => x.name !== name));
-  ntRenderEnvelopes();
+  if (saveOrgEntry(entry)) ntRenderEnvelopes();
 }
 function ntRenderOrgManager() {
   const list = loadCustomOrgs();
   const box = document.getElementById('nt-org-manager');
   if (!box) return;
-  box.innerHTML = list.length
-    ? list.map(o => `
-        <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);">
-          <div style="flex:1;font-size:12px;">
-            <div style="font-weight:700;color:var(--navy);">${escapeHtml(o.name)}</div>
-            <div style="color:var(--text-light);">${escapeHtml(o.zip)} ${escapeHtml(o.addr)}</div>
-          </div>
-          <button class="remove-btn" onclick="ntDeleteOrg('${escapeHtml(o.name).replace(/'/g,"\\'")}')">✕</button>
-        </div>`).join('')
-    : '<div style="font-size:12px;color:var(--text-light);">還沒有存過常用收件人。在上面填好名稱與地址後按「＋ 存為常用」即可。</div>';
+  box.innerHTML = orgManagerHtml(list);
 }
 
 function ntAddEnvelope() { ntEnvelopes.push({ name:'', title:'', zip:'', addr:'' }); ntRenderEnvelopes(); }
@@ -3011,6 +3196,7 @@ function clearCase() {
   if (isNonTerm) {
     clearFieldsIn('scenario-nonterm');
     ntSelectedTypes.length = 0;
+    ntTypeMode = 'specific';
     ntCreditors.length = 0;
     ntCreditors.push({ name:'', amount:'', pay:'匯款' });
     ntNoteEdited = false;
@@ -3030,7 +3216,7 @@ function clearCase() {
   } else {
     clearFieldsIn('scenario-termination');
     policies.length = 0;
-    policies.push({ name:'', number:'', amount:'', currency:'新臺幣', loan:'0', advance:'0', fee:'250', pay:'匯款' });
+    policies.push({ name:'', number:'', amount:'', currency:'新臺幣', loan:'0', advance:'0', fee:'250', feeEdited:false, pay:'匯款' });
     extraParas.length = 0;
     internalNoteManuallyEdited = false;
     envDocNumManuallyEdited = false;
@@ -3051,6 +3237,7 @@ function clearCase() {
 renderPolicies();
 loadEnvCalib();
 loadSenderSettings();
+renderEnvOrgPicker();
 updateSettingsBackupStatus();
 prefillDates();
 syncDocNum();   // 讓信封的文號與填寫頁一致
