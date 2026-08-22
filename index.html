@@ -2463,7 +2463,7 @@ const RECEIPT_BASE = {
 function buildReceiptHTML(data) {
   const B = RECEIPT_BASE;
   const vertical = (cfg, value, extra='') => value ?
-    `<div style="position:absolute;left:${cfg.left}mm;top:${cfg.top}mm;font-size:${cfg.pt}pt;line-height:1;writing-mode:vertical-rl;text-orientation:upright;white-space:nowrap;${extra}">${rotateNums(value)}</div>` : '';
+    `<div style="position:absolute;left:${cfg.left}mm;top:${cfg.top}mm;font-size:${cfg.pt}pt;line-height:1;writing-mode:vertical-rl;text-orientation:sideways;white-space:nowrap;${extra}">${escapeHtml(value)}</div>` : '';
   const title = (data.title || '').trim();
   const recipient = `${data.name || '○○'}${title && !['啟','收'].includes(title) ? title : ''}收`;
   return `<div style="width:${RECEIPT_PAPER.w}mm;height:${RECEIPT_PAPER.h}mm;position:relative;overflow:hidden;background:#fff;font-family:'標楷體','DFKai-SB',serif;">
