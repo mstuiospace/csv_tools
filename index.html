@@ -8,6 +8,7 @@
 <html lang="zh-TW">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>法扣案件公文工具</title>
 <!-- 刻意不引用任何外部資源（含網路字型）：本工具需在無對外連線的環境下完整運作，
@@ -684,9 +685,13 @@ textarea { resize: vertical; min-height: 70px; }
       <div class="section">
         <div class="section-header"><span class="gold-dot"></span>給付方式</div>
         <div class="section-body">
+          <div class="alert-box alert-gold" style="margin-bottom:14px;">
+            <span>💡</span>
+            <div>每張保單只能選一種給付方式；外幣只能匯款，新臺幣可選匯款或支票。下方按鈕可快速批次設定，特殊案件再到各保單調整。若發生退匯，請依實際處理結果改選給付方式與日期；對內備註仍可手動修改。</div>
+          </div>
           <div class="toggle-group" style="margin-bottom:14px;">
-            <button class="toggle-btn active" id="btn-remit" onclick="setPayMethod('匯款')">🏦 匯款</button>
-            <button class="toggle-btn" id="btn-check" onclick="setPayMethod('支票')">📝 支票</button>
+            <button class="toggle-btn active" id="btn-remit" onclick="setPayMethod('匯款')">🏦 全部匯款</button>
+            <button class="toggle-btn" id="btn-check" onclick="setPayMethod('支票')">📝 新臺幣改為支票</button>
           </div>
 
           <div id="remit-fields" class="grid2">
@@ -700,7 +705,7 @@ textarea { resize: vertical; min-height: 70px; }
             </div>
           </div>
 
-          <div id="check-fields" class="hidden">
+          <div id="check-fields" class="hidden" style="margin-top:14px;">
             <div class="grid2">
               <div>
                 <label class="field-label">開票日期</label>
@@ -746,7 +751,7 @@ textarea { resize: vertical; min-height: 70px; }
           </div>
           <div class="full">
             <label class="field-label">債務人姓名</label>
-            <input type="text" id="debtor" placeholder="王大明">
+            <input type="text" id="debtor" placeholder="王大明" oninput="updateNote3Preview(); updateInternalNoteAuto();">
           </div>
           <div class="full">
             <label class="field-label">公文文號 <span style="font-size:10px;color:var(--text-light);">（共15碼，會自動帶入對內備註與信封）</span></label>
@@ -802,6 +807,7 @@ textarea { resize: vertical; min-height: 70px; }
               <option value="no-control-main" selected>依函揭命令說明○未予控管（有說明點）</option>
               <option value="no-control-title">依函揭命令主旨＋說明○未予控管</option>
               <option value="cancel">敬請鈞院准予撤銷扣押命令並副知本公司</option>
+              <option value="no-active-policy">保險契約依令終止後，於本公司已無有效保單</option>
               <option value="custom">自填內容</option>
             </select>
           </div>
@@ -1316,20 +1322,20 @@ textarea { resize: vertical; min-height: 70px; }
       <!-- 只留最近四筆，新增一筆就把最舊的那筆刪掉 -->
       <div style="font-size:11.5px;color:var(--text-mid);line-height:1.8;">
         <div style="margin-bottom:8px;">
+          <strong>v1.8</strong>　2026-08-22<br>
+          解約件第三點新增「保險契約依令終止後，於本公司已無有效保單」選項；公文自動列出實際手續費金額；多幣別金額分開計算與顯示；支援每張保單分別選擇匯款或支票
+        </div>
+        <div style="margin-bottom:8px;">
+          <strong>v1.7</strong>　2026-08-20<br>
+          加強離線資安限制與輸入內容防護，確保異常輸入也無法觸發對外連線
+        </div>
+        <div style="margin-bottom:8px;">
           <strong>v1.6</strong>　2026-08-18<br>
           非解約給付新增信封，可一次列印多張；收件人可存為常用、一鍵帶入領支票的債權人，並內建法院與執行機關地址
         </div>
         <div style="margin-bottom:8px;">
           <strong>v1.5</strong>　2026-08-16<br>
           新增非解約給付情境，支援多債權人與匯款、支票並存；新增一鍵清空重填
-        </div>
-        <div style="margin-bottom:8px;">
-          <strong>v1.4</strong>　2026-08-16<br>
-          寄件人資訊改由使用者設定；公文文號可於首頁填寫並自動帶入對內備註與信封
-        </div>
-        <div style="margin-bottom:8px;">
-          <strong>v1.3</strong>　2026-08-12<br>
-          信封版型改依範本實測座標重建；明細表註記單筆時不編號；新增金額防呆檢查
         </div>
       </div>
     </div>
@@ -1345,15 +1351,15 @@ textarea { resize: vertical; min-height: 70px; }
 <script>
 // ===== VERSION / 版權資訊 =====
 // 本工具原創設計、開發：Miyabi。每次更新請同步修改這裡的版本號與日期。
-const APP_VERSION = 'v1.6';
-const APP_UPDATED = '2026-08-18';
+const APP_VERSION = 'v1.8';
+const APP_UPDATED = '2026-08-22';
 const APP_AUTHOR = 'Miyabi';
 console.log(`%c法扣案件公文套版工具 ${APP_VERSION}`, 'font-weight:bold;color:#c4973a;');
 console.log(`© 2026 ${APP_AUTHOR}．原創設計與開發．最後更新：${APP_UPDATED}`);
 
 // ===== STATE =====
-let payMethod = '匯款';
-let policies = [{ name:'', number:'', amount:'', currency:'新臺幣', loan:'0', advance:'0', fee:'250' }];
+let payMethod = '匯款'; // 保留作為批次操作的最後選擇；實際輸出以每張保單的 pay 為準
+let policies = [{ name:'', number:'', amount:'', currency:'新臺幣', loan:'0', advance:'0', fee:'250', pay:'匯款' }];
 let extraParas = [];
 const CURRENCIES = ['新臺幣','美元','澳幣','人民幣'];
 const SYM = {'新臺幣':'元','美元':'美元','澳幣':'澳幣','人民幣':'人民幣'};
@@ -1405,10 +1411,25 @@ function switchTab(t) {
 // ===== PAY METHOD =====
 function setPayMethod(m) {
   payMethod = m;
-  document.getElementById('btn-remit').className = 'toggle-btn' + (m==='匯款'?' active':'');
-  document.getElementById('btn-check').className = 'toggle-btn' + (m==='支票'?' active':'');
-  document.getElementById('remit-fields').classList.toggle('hidden', m!=='匯款');
-  document.getElementById('check-fields').classList.toggle('hidden', m!=='支票');
+  policies.forEach(p => { p.pay = m === '支票' && p.currency === '新臺幣' ? '支票' : '匯款'; });
+  renderPolicies();
+  syncPaySections();
+  updateInternalNoteAuto();
+}
+function policyPay(p) { return p.pay === '支票' && p.currency === '新臺幣' ? '支票' : '匯款'; }
+function hasPayMethod(m) { return policies.some(p => policyPay(p) === m); }
+function syncPaySections() {
+  const hasRemit = hasPayMethod('匯款');
+  const hasCheck = hasPayMethod('支票');
+  document.getElementById('remit-fields').classList.toggle('hidden', !hasRemit);
+  document.getElementById('check-fields').classList.toggle('hidden', !hasCheck);
+  document.getElementById('btn-remit').className = 'toggle-btn' + (hasRemit && !hasCheck ? ' active' : '');
+  document.getElementById('btn-check').className = 'toggle-btn' + (hasCheck && !hasRemit ? ' active' : '');
+}
+function setPolicyPay(idx, method) {
+  policies[idx].pay = method === '支票' && policies[idx].currency === '新臺幣' ? '支票' : '匯款';
+  renderPolicies();
+  syncPaySections();
   updateInternalNoteAuto();
 }
 function toggleCustomTarget() {
@@ -1421,6 +1442,25 @@ function toNum(v) { return parseFloat((v||'0').replace(/,/g,'')) || 0; }
 function fmtNum(n) { return isNaN(n) ? '-' : n.toLocaleString('zh-TW'); }
 function calcActual(p) { return p.amount ? toNum(p.amount) - toNum(p.loan) - toNum(p.advance) - toNum(p.fee) : 0; }
 function toZhNum(n) { return n <= 10 ? NUM_ZH[n] : n; }
+function currencyTotals(source = policies) {
+  const totals = new Map();
+  // 尚未填寫解約金的保單不先寫成「某幣0元」；明確輸入 0 則仍列入。
+  source.filter(p => String(p.amount).trim() !== '').forEach(p =>
+    totals.set(p.currency, (totals.get(p.currency) || 0) + calcActual(p))
+  );
+  if (totals.size === 0 && source.length) totals.set(source[0]?.currency || '新臺幣', 0);
+  return totals;
+}
+function groupedTotalText(spaced = false, source = policies) {
+  return [...currencyTotals(source)].map(([cur, amount]) => {
+    return spaced ? `${cur} ${fmtNum(amount)} 元` : `${cur}${fmtNum(amount)}元`;
+  }).join('、');
+}
+function paymentTotalText(source = policies) {
+  const entries = [...currencyTotals(source)];
+  if (entries.length === 1 && entries[0][0] === '新臺幣') return `${fmtNum(entries[0][1])}元`;
+  return entries.map(([cur, amount]) => `${cur}${fmtNum(amount)}元`).join('、');
+}
 
 // ===== 金額防呆檢查 =====
 // 只偵測並提示，不阻擋輸入（公文金額情況多，硬性擋掉反而卡住作業）
@@ -1452,10 +1492,14 @@ function validateAmounts() {
     });
     if (credRaw && debtRaw) {
       const sum = toNum(credRaw) + toNum(debtRaw);
-      const total = policies.reduce((s, p) => s + calcActual(p), 0);
-      if (sum !== total) {
-        const diff = sum - total;
-        issues.push(`分配給付合計 ${fmtNum(sum)} 元，與合計實領金額 ${fmtNum(total)} 元不符（${diff > 0 ? '多' : '少'} ${fmtNum(Math.abs(diff))} 元）`);
+      const totals = currencyTotals();
+      // 分配欄位未區分幣別，僅能在單一幣別時比對。
+      if (totals.size === 1) {
+        const total = [...totals.values()][0];
+        if (sum !== total) {
+          const diff = sum - total;
+          issues.push(`分配給付合計 ${fmtNum(sum)} 元，與合計實領金額 ${fmtNum(total)} 元不符（${diff > 0 ? '多' : '少'} ${fmtNum(Math.abs(diff))} 元）`);
+        }
       }
     }
   }
@@ -1468,8 +1512,12 @@ function renderAmountWarnings() {
   const issues = validateAmounts();
   box.classList.toggle('hidden', issues.length === 0);
   box.innerHTML = issues.map(t =>
-    `<div class="alert-box alert-red" style="margin-bottom:8px;"><span>⚠️</span><div>${t}</div></div>`
+    `<div class="alert-box alert-red" style="margin-bottom:8px;"><span>⚠️</span><div>${escapeHtml(t)}</div></div>`
   ).join('');
+  const duplicateFee = policies.filter(p => toNum(p.fee) > 0).length > 1;
+  document.querySelectorAll('.policy-fee-warning').forEach(el =>
+    el.classList.toggle('hidden', !duplicateFee)
+  );
 }
 
 function validatePolicyNum(el) {
@@ -1485,7 +1533,18 @@ function validatePolicyNum(el) {
 
 // ===== POLICIES =====
 function setCurrency(idx, cur) {
+  if (policies[idx].currency === cur) return;
   policies[idx].currency = cur;
+  if (cur !== '新臺幣') {
+    policies[idx].fee = '';
+    policies[idx].pay = '匯款';
+  }
+
+  // 只要案件中有新臺幣保單，250 元優先放在第一張新臺幣保單。
+  const twdIdx = policies.findIndex(p => p.currency === '新臺幣');
+  if (twdIdx >= 0 && !policies.some(p => p.currency === '新臺幣' && toNum(p.fee) > 0)) {
+    policies.forEach((p, i) => { p.fee = i === twdIdx ? '250' : (p.currency === '新臺幣' ? '0' : ''); });
+  }
   renderPolicies();
 }
 function updatePolicyField(idx, field, val) {
@@ -1493,10 +1552,7 @@ function updatePolicyField(idx, field, val) {
   updateTotal();
 }
 function updateTotal() {
-  const total = policies.reduce((s,p) => s + calcActual(p), 0);
-  const mixed = new Set(policies.map(p=>p.currency)).size > 1;
-  const sym = mixed ? '（多幣別）' : (SYM[policies[0]?.currency]||'元');
-  document.getElementById('total-display').textContent = fmtNum(total) + ' ' + sym;
+  document.getElementById('total-display').textContent = groupedTotalText(true);
   renderAmountWarnings();
 }
 function renderPolicies() {
@@ -1512,48 +1568,67 @@ function renderPolicies() {
       </div>
       <div class="grid2">
         <div>
-          <label class="field-label">險別名稱</label>
-          <input type="text" value="${p.name}" placeholder="○○終身壽險" oninput="updatePolicyField(${i},'name',this.value)" style="width:100%">
-        </div>
-        <div>
           <label class="field-label">保單號碼 <span style="font-size:10px;color:var(--text-light);">（須10碼）</span></label>
-          <input type="text" value="${p.number}" placeholder="○○○○○○○○○○" maxlength="10"
+          <input type="text" value="${escapeHtml(p.number)}" placeholder="○○○○○○○○○○" maxlength="10"
             oninput="updatePolicyField(${i},'number',this.value); validatePolicyNum(this);"
             style="width:100%;${p.number && p.number.length !== 10 ? 'border-color:#e05;background:#fff5f5;' : ''}">
         </div>
         <div>
+          <label class="field-label">險別名稱</label>
+          <input type="text" value="${escapeHtml(p.name)}" placeholder="○○終身壽險" oninput="updatePolicyField(${i},'name',this.value)" style="width:100%">
+        </div>
+        <div>
           <label class="field-label">解約金</label>
-          <input type="text" value="${p.amount}" placeholder="○○○,○○○" oninput="updatePolicyField(${i},'amount',this.value)" style="width:100%">
+          <input type="text" value="${escapeHtml(p.amount)}" placeholder="○○○,○○○" oninput="updatePolicyField(${i},'amount',this.value)" style="width:100%">
         </div>
         <div>
           <label class="field-label">幣別</label>
           <div class="cur-group">${CURRENCIES.map(c=>`<button class="cur-btn${p.currency===c?' active':''}" onclick="setCurrency(${i},'${c}')">${c}</button>`).join('')}</div>
+          <label class="field-label" style="margin-top:12px;">給付方式</label>
+          ${p.currency === '新臺幣'
+            ? `<div class="cur-group"><button class="cur-btn${policyPay(p)==='匯款'?' active':''}" onclick="setPolicyPay(${i},'匯款')">匯款</button><button class="cur-btn${policyPay(p)==='支票'?' active':''}" onclick="setPolicyPay(${i},'支票')">支票</button></div>`
+            : `<div style="font-size:13px;color:var(--text-mid);padding:8px 0;">匯款（外幣不可開立支票）</div>`}
         </div>
         <div>
           <label class="field-label">（扣）保單借款本息</label>
-          <input type="text" value="${p.loan}" placeholder="0" oninput="updatePolicyField(${i},'loan',this.value)" style="width:100%">
+          <input type="text" value="${escapeHtml(p.loan)}" placeholder="0" oninput="updatePolicyField(${i},'loan',this.value)" style="width:100%">
         </div>
         <div>
           <label class="field-label">（扣）墊繳保費本息</label>
-          <input type="text" value="${p.advance}" placeholder="0" oninput="updatePolicyField(${i},'advance',this.value)" style="width:100%">
+          <input type="text" value="${escapeHtml(p.advance)}" placeholder="0" oninput="updatePolicyField(${i},'advance',this.value)" style="width:100%">
         </div>
         <div class="full">
           <label class="field-label">手續費</label>
           <div style="display:flex;align-items:center;gap:8px;">
-            <input type="text" value="${p.fee}" placeholder="${p.currency==='新臺幣'?'250':''}" oninput="updatePolicyField(${i},'fee',this.value)" style="width:100px">
+            <input type="text" value="${escapeHtml(p.fee)}" placeholder="${p.currency==='新臺幣'?'250':''}" oninput="updatePolicyField(${i},'fee',this.value)" style="width:100px">
             <span style="font-size:13px;color:var(--text-mid);">${SYM[p.currency]||'元'}</span>
+          </div>
+          <div class="policy-fee-warning alert-box alert-red hidden" style="margin-top:8px;padding:8px 10px;">
+            <span>⚠️</span><div>同一債務人最多只扣一次手續費，請只保留一張保單的手續費金額</div>
           </div>
         </div>
       </div>`;
     c.appendChild(div);
   });
   updateTotal();
+  syncPaySections();
 }
 function addPolicy() {
-  policies.push({ name:'', number:'', amount:'', currency:'新臺幣', loan:'0', advance:'0', fee:'250' });
+  // 新增保單預設新臺幣；只有案件原本沒有新臺幣保單時才帶入 250 元。
+  const hasTwd = policies.some(p => p.currency === '新臺幣');
+  if (!hasTwd) policies.forEach(p => { p.fee = ''; });
+  policies.push({ name:'', number:'', amount:'', currency:'新臺幣', loan:'0', advance:'0', fee:hasTwd?'0':'250', pay:'匯款' });
   renderPolicies();
 }
-function removePolicy(idx) { policies.splice(idx,1); renderPolicies(); }
+function removePolicy(idx) {
+  const removedFee = toNum(policies[idx]?.fee) > 0;
+  policies.splice(idx,1);
+  if (removedFee) {
+    const twdIdx = policies.findIndex(p => p.currency === '新臺幣');
+    if (twdIdx >= 0) policies[twdIdx].fee = '250';
+  }
+  renderPolicies();
+}
 
 // ===== DISTRIBUTION =====
 function toggleDistribution() {
@@ -1574,6 +1649,8 @@ function updateNote3() {
 function updateNote3Preview() {
   const t = document.getElementById('note3Type').value;
   const ct = document.getElementById('courtType')?.value || '鈞院';
+  const debtor = document.getElementById('debtor')?.value.trim() || '○';
+  const debtorSurname = debtor.charAt(0);
   let text = '';
   if (t === 'no-control-main') {
     const num = document.getElementById('note3MainNum').value || '○';
@@ -1581,6 +1658,8 @@ function updateNote3Preview() {
   } else if (t === 'no-control-title') {
     const num = document.getElementById('note3TitleNum').value || '○';
     text = `三、本公司依函揭命令主旨及說明${num}未予控管前揭保險契約，併予敘明。`;
+  } else if (t === 'no-active-policy') {
+    text = `三、${debtorSurname}君之保險契約依令終止後，於本公司已無有效保單，併予敘明。`;
   } else if (t === 'cancel') {
     text = `三、敬請${ct}准予撤銷本件扣押命令並副知本公司，實感德便。`;
   } else if (t === 'custom') {
@@ -1615,7 +1694,7 @@ function renderExtraParas() {
     div.className = 'extra-para';
     div.innerHTML = `
       <div class="extra-para-num">${num}、</div>
-      <textarea placeholder="填入說明內容…" oninput="updateExtraPara('${p.id}',this.value)" style="flex:1;margin:0;">${p.text}</textarea>
+      <textarea placeholder="填入說明內容…" oninput="updateExtraPara('${p.id}',this.value)" style="flex:1;margin:0;">${escapeHtml(p.text)}</textarea>
       <button class="remove-btn" onclick="removeExtraPara('${p.id}')" style="margin-top:0;">✕</button>`;
     c.appendChild(div);
   });
@@ -1627,9 +1706,13 @@ function updateExtraPara(id, val) {
 
 // ===== ATTACH (純提醒) =====
 function renderAttach() {
-  const payIsCheck = payMethod === '支票';
-  const innerList = payIsCheck ? INNER_ATTACH_CHECK : INNER_ATTACH_REMIT;
-  const outerList = payIsCheck ? OUTER_ATTACH_CHECK : OUTER_ATTACH_REMIT;
+  const hasRemit = hasPayMethod('匯款');
+  const hasCheck = hasPayMethod('支票');
+  const innerList = ['總公司照會公文','執行命令','解約明細表'];
+  if (hasRemit) innerList.push('系統匯款紀錄截圖');
+  if (hasCheck) innerList.push('支票影本');
+  const outerList = ['解約明細表'];
+  if (hasCheck) outerList.push('支票影本');
 
   const renderList = (items, containerId) => {
     const c = document.getElementById(containerId);
@@ -1652,7 +1735,6 @@ function generateDocTable() {
   const hasDistribution = document.getElementById('hasDistribution').checked;
   const creditorAmt = document.getElementById('creditorAmount').value || '○';
   const debtorRet = document.getElementById('debtorReturn').value || '○';
-  const total = policies.reduce((s,p) => s + calcActual(p), 0);
   const hasMixed = new Set(policies.map(p=>p.currency)).size > 1;
 
   document.getElementById('table-title-doc').textContent = debtor + '保險解約金明細表';
@@ -1669,22 +1751,22 @@ function generateDocTable() {
     const act = calcActual(p);
     tbody += `<tr>
       <td>${i+1}</td>
-      <td><span style="display:block;">${p.name||'—'}</span><span style="display:block;">（${p.number||'—'}）</span></td>
+      <td><span style="display:block;">${escapeHtml(p.name||'—')}</span><span style="display:block;">（${escapeHtml(p.number||'—')}）</span></td>
       ${hasMixed?`<td>${p.currency}</td>`:''}
-      <td style="text-align:right">${p.amount||'0'}</td>
-      <td style="text-align:right">${p.loan||'0'}</td>
-      <td style="text-align:right">${p.advance||'0'}</td>
+      <td style="text-align:right">${escapeHtml(p.amount||'0')}</td>
+      <td style="text-align:right">${escapeHtml(p.loan||'0')}</td>
+      <td style="text-align:right">${escapeHtml(p.advance||'0')}</td>
       <td style="text-align:right;font-weight:700">${fmtNum(act)}</td>
     </tr>`;
   });
   const cs = hasMixed ? 4 : 3;
-  tbody += `<tr class="total-row"><td colspan="${cs}" style="text-align:center">合計金額</td><td colspan="3" style="text-align:right">${fmtNum(total)}</td></tr>`;
+  tbody += `<tr class="total-row"><td colspan="${cs}" style="text-align:center">合計金額</td><td colspan="3" style="text-align:right">${groupedTotalText()}</td></tr>`;
   document.getElementById('detail-table-doc').innerHTML = thead + tbody;
 
   const noteItems = [];
   policies.forEach(p => {
     if (p.fee && p.fee !== '0') {
-      noteItems.push(`保單號碼${p.number||'○○'}另扣除手續費${p.fee}${SYM[p.currency]||'元'}。`);
+      noteItems.push(`保單號碼${p.number||'○○'}另扣除手續費${p.currency === '新臺幣' ? '' : p.currency}${p.fee}元。`);
     }
   });
   if (hasDistribution) {
@@ -1692,8 +1774,8 @@ function generateDocTable() {
   }
   // 只有一則註記時不編號，避免「註1」看起來像漏寫了後續項目
   const notes = noteItems.length === 1
-    ? `註：${noteItems[0]}`
-    : noteItems.map((t, i) => `註${i+1}：${t}`).join('<br>');
+    ? `註：${escapeHtml(noteItems[0])}`
+    : noteItems.map((t, i) => `註${i+1}：${escapeHtml(t)}`).join('<br>');
   document.getElementById('detail-notes-doc').innerHTML = notes;
 
   // 債務人即信封收件人：未自行填寫時，以債務人姓名提示（實際列印也會沿用，見 getEnvData）
@@ -1714,36 +1796,48 @@ function generatePreview() {
   const creditorAmt = document.getElementById('creditorAmount').value || '○';
   const debtorRet = document.getElementById('debtorReturn').value || '○';
 
-  const total = policies.reduce((s,p) => s + calcActual(p), 0);
-  const mixed = new Set(policies.map(p=>p.currency)).size > 1;
-  const mainCur = mixed ? '' : (policies[0]?.currency||'新臺幣');
-  const sym = mixed ? '' : (SYM[policies[0]?.currency]||'元');
-  const totalStr = fmtNum(total);
+  const totals = currencyTotals();
+  const mixed = totals.size > 1;
+  const mainCur = policies[0]?.currency || '新臺幣';
+  const sym = SYM[mainCur] || '元';
+  const totalStr = groupedTotalText();
 
   // 主旨：鈞院→債務人，鈞署→義務人
   const personType = courtType === '鈞署' ? '義務人' : '債務人';
   const subject = `有關終止${personType}${debtor}君（下稱${debtorSurname}君）保險契約執行乙事，詳如說明，請查照。`;
 
-  // 手續費：有填才顯示
-  const hasFee = policies.some(p => p.fee && p.fee !== '0');
-  const feeDesc = hasFee ? '，已扣除手續費' : '';
+  // 手續費：哪張保單的欄位有金額，就把該金額與幣別寫進公文。
+  // 同一件最多只能有一張扣手續費；若多張誤填，validateAmounts() 會顯示提醒。
+  const feePolicy = policies.find(p => toNum(p.fee) > 0);
+  // 多幣別案件必須標明手續費是從哪個幣別扣；單一新臺幣案件維持簡寫「250元」。
+  const feeCurrency = feePolicy && (totals.size > 1 || feePolicy.currency !== '新臺幣')
+    ? feePolicy.currency
+    : '';
+  const feeDesc = feePolicy
+    ? `，已扣除手續費${feeCurrency}${fmtNum(toNum(feePolicy.fee))}元`
+    : '';
 
   // 單張or多張保單
   const multiPolicy = policies.length > 1;
-  const amountWord = multiPolicy ? `解約金合計為${mainCur}${totalStr}${sym}` : `解約金為${mainCur}${totalStr}${sym}`;
+  const amountWord = multiPolicy ? `解約金合計為${totalStr}` : `解約金為${totalStr}`;
 
-  // 第二點
-  let para2 = '';
-  if (payMethod === '匯款') {
+  // 第二點：每張保單依自己的給付方式分組；混合時把原有匯款與支票內容併在同一點。
+  const remitPolicies = policies.filter(p => policyPay(p) === '匯款');
+  const checkPolicies = policies.filter(p => policyPay(p) === '支票');
+  const actions = [];
+  if (remitPolicies.length) {
     const remitDate = document.getElementById('remitDate').value || '○年○月○日';
     const account = document.getElementById('account').value || '○○法院○○○專戶';
-    para2 = `二、查本公司已依前揭執行命令終止以${debtorSurname}君為要保人之保險契約，${amountWord}（明細請詳附件，金額以作業當日為準${feeDesc}），並於${remitDate}匯款${totalStr}${sym}於${account}。`;
-  } else {
+    actions.push(`於${remitDate}匯款${paymentTotalText(remitPolicies)}於${account}`);
+  }
+  if (checkPolicies.length) {
     const checkDate = document.getElementById('checkDate').value || '○年○月○日';
     const targetSel = document.getElementById('checkTarget').value;
     const target = targetSel === '自填' ? (document.getElementById('customTarget').value || '○○') : targetSel;
-    para2 = `二、查本公司已依前揭執行命令終止以${debtorSurname}君為要保人之保險契約，${amountWord}（明細請詳附件，金額以作業當日為準${feeDesc}），並於${checkDate}開立支票${totalStr}${sym}（影本如附件）逕送${target}。`;
+    actions.push(`於${checkDate}開立支票${paymentTotalText(checkPolicies)}（影本如附件）逕送${target}`);
   }
+  const actionText = actions.length > 1 ? actions.join('，另') : actions[0];
+  let para2 = `二、查本公司已依前揭執行命令終止以${debtorSurname}君為要保人之保險契約，${amountWord}（明細請詳附件，金額以作業當日為準${feeDesc}），並${actionText}。`;
   if (hasDistribution) {
     para2 += `另解約金${creditorAmt}${sym}給付債權人，餘額${debtorRet}${sym}返還債務人。`;
   }
@@ -1758,6 +1852,8 @@ function generatePreview() {
     } else if (note3Type === 'no-control-title') {
       const num = document.getElementById('note3TitleNum').value || '○';
       para3 = `三、本公司依函揭命令主旨及說明${num}未予控管前揭保險契約，併予敘明。`;
+    } else if (note3Type === 'no-active-policy') {
+      para3 = `三、${debtorSurname}君之保險契約依令終止後，於本公司已無有效保單，併予敘明。`;
     } else if (note3Type === 'cancel') {
       para3 = `三、敬請${courtType}准予撤銷本件扣押命令並副知本公司，實感德便。`;
     } else if (note3Type === 'custom') {
@@ -1798,22 +1894,22 @@ function generatePreview() {
     const act = calcActual(p);
     tbody += `<tr>
       <td>${i+1}</td>
-      <td><span style="display:block;">${p.name||'—'}</span><span style="display:block;">（${p.number||'—'}）</span></td>
+      <td><span style="display:block;">${escapeHtml(p.name||'—')}</span><span style="display:block;">（${escapeHtml(p.number||'—')}）</span></td>
       ${hasMixed?`<td>${p.currency}</td>`:''}
-      <td style="text-align:right">${p.amount||'0'}</td>
-      <td style="text-align:right">${p.loan||'0'}</td>
-      <td style="text-align:right">${p.advance||'0'}</td>
+      <td style="text-align:right">${escapeHtml(p.amount||'0')}</td>
+      <td style="text-align:right">${escapeHtml(p.loan||'0')}</td>
+      <td style="text-align:right">${escapeHtml(p.advance||'0')}</td>
       <td style="text-align:right;font-weight:700">${fmtNum(act)}</td>
     </tr>`;
   });
   const cs = hasMixed ? 4 : 3;
-  tbody += `<tr class="total-row"><td colspan="${cs}" style="text-align:center">合計金額</td><td colspan="3" style="text-align:right">${fmtNum(total)}</td></tr>`;
+  tbody += `<tr class="total-row"><td colspan="${cs}" style="text-align:center">合計金額</td><td colspan="3" style="text-align:right">${groupedTotalText()}</td></tr>`;
   document.getElementById('detail-table').innerHTML = thead + tbody;
 
   const noteItems = [];
   policies.forEach(p => {
     if (p.fee && p.fee !== '0') {
-      noteItems.push(`保單號碼${p.number||'○○'}另扣除手續費${p.fee}${SYM[p.currency]||'元'}。`);
+      noteItems.push(`保單號碼${p.number||'○○'}另扣除手續費${p.currency === '新臺幣' ? '' : p.currency}${p.fee}元。`);
     }
   });
   if (hasDistribution) {
@@ -1821,8 +1917,8 @@ function generatePreview() {
   }
   // 只有一則註記時不編號，避免「註1」看起來像漏寫了後續項目
   const notes = noteItems.length === 1
-    ? `註：${noteItems[0]}`
-    : noteItems.map((t, i) => `註${i+1}：${t}`).join('<br>');
+    ? `註：${escapeHtml(noteItems[0])}`
+    : noteItems.map((t, i) => `註${i+1}：${escapeHtml(t)}`).join('<br>');
   document.getElementById('detail-notes').innerHTML = notes;
 }
 
@@ -1974,7 +2070,8 @@ function resetEnvCalib() {
 
 // ===== ENVELOPE RENDER（預覽與列印共用同一份版面，確保長相一致） =====
 function escapeHtml(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
 // 直書中的數字／英數字排版，規則取自範本 PDF 的字元 bbox 實測：
 //   4 碼以內（門牌號等）：text-combine-upright 壓進一個字寬
@@ -2128,7 +2225,8 @@ function printDetail() {
   }
   win.document.write(`<!DOCTYPE html><html lang="zh-TW"><head>
     <meta charset="UTF-8">
-    <title>${titleText}</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; font-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
+    <title>${escapeHtml(titleText)}</title>
     <style>
       body { font-family: '標楷體', serif; font-size: 12pt; margin: 10mm; }
       .attach-label { font-size: 12pt; margin-bottom: 8px; }
@@ -2143,7 +2241,7 @@ function printDetail() {
     </style>
   </head><body>
     <div class="attach-label">附件：</div>
-    <div class="title">${titleText}</div>
+    <div class="title">${escapeHtml(titleText)}</div>
     ${tableHTML}
     <div class="notes">${notesHTML}</div>
     <script>window.onload=()=>{window.print();}<\/script>
@@ -2169,6 +2267,7 @@ function printEnvelopes(dataList) {
   }
   win.document.write(`<!DOCTYPE html><html lang="zh-TW"><head>
     <meta charset="UTF-8"><title>信封</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; font-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'">
     <style>
       * { box-sizing: border-box; margin: 0; padding: 0; }
       @media print {
@@ -2264,19 +2363,25 @@ function fmtMinguoSlash(date) {
 }
 
 function buildAutoInternalNote() {
-  const payIsCheck = payMethod === '支票';
-  const rawDate = document.getElementById(payIsCheck ? 'checkDate' : 'remitDate').value;
-  const parsed = parseMinguoDate(rawDate);
-
+  const hasRemit = hasPayMethod('匯款');
+  const hasCheck = hasPayMethod('支票');
+  const remitParsed = hasRemit ? parseMinguoDate(document.getElementById('remitDate').value) : null;
+  const checkParsed = hasCheck ? parseMinguoDate(document.getElementById('checkDate').value) : null;
   const lines = [];
-  lines.push(parsed ? `${fmtMinguoSlash(previousWorkday(parsed))} 解約` : '○年○月○日 解約');
-
-  if (payIsCheck) {
+  const remitTermination = remitParsed ? fmtMinguoSlash(previousWorkday(remitParsed)) : '○年○月○日';
+  const checkTermination = checkParsed ? fmtMinguoSlash(previousWorkday(checkParsed)) : '○年○月○日';
+  if (hasRemit && hasCheck && remitTermination !== checkTermination) {
+    lines.push(`${remitTermination} 匯款保單解約`);
+    lines.push(`${checkTermination} 支票保單解約`);
+  } else {
+    lines.push(`${hasRemit ? remitTermination : checkTermination} 解約`);
+  }
+  if (hasRemit) lines.push(remitParsed ? `${fmtMinguoSlash(remitParsed)} 匯款` : '○年○月○日 匯款');
+  if (hasCheck) {
+    lines.push(checkParsed ? `${fmtMinguoSlash(checkParsed)} 開票` : '○年○月○日 開票');
     // 收支票日／寄出支票日無法從開票日推算（屬獨立資訊），但年月比照日期欄位預填，只留「日」給使用者補
     const now = new Date();
     lines.push(`收支票日／寄出支票日：${now.getFullYear()-1911}年${now.getMonth()+1}月日`);
-  } else {
-    lines.push(parsed ? `${fmtMinguoSlash(parsed)} 匯款` : '○年○月○日 匯款');
   }
 
   const note3Type = document.getElementById('note3Type').value;
@@ -2293,6 +2398,9 @@ function buildAutoInternalNote() {
   } else if (note3Type === 'no-control-title') {
     const num = document.getElementById('note3TitleNum').value || '○';
     thirdPointText = `${函覆}依函揭命令主旨及說明${num}未予控管`;
+  } else if (note3Type === 'no-active-policy') {
+    const debtor = document.getElementById('debtor')?.value.trim() || '○';
+    thirdPointText = `${函覆}${debtor.charAt(0)}君之保險契約依令終止後，於本公司已無有效保單`;
   } else if (note3Type === 'custom') {
     thirdPointText = document.getElementById('note3Custom').value || '';
   }
@@ -2779,7 +2887,7 @@ function clearCase() {
   } else {
     clearFieldsIn('scenario-termination');
     policies.length = 0;
-    policies.push({ name:'', number:'', amount:'', currency:'新臺幣', loan:'0', advance:'0', fee:'250' });
+    policies.push({ name:'', number:'', amount:'', currency:'新臺幣', loan:'0', advance:'0', fee:'250', pay:'匯款' });
     extraParas.length = 0;
     internalNoteManuallyEdited = false;
     envDocNumManuallyEdited = false;
