@@ -2368,21 +2368,31 @@ function buildAutoInternalNote() {
   const remitParsed = hasRemit ? parseMinguoDate(document.getElementById('remitDate').value) : null;
   const checkParsed = hasCheck ? parseMinguoDate(document.getElementById('checkDate').value) : null;
   const lines = [];
-  const remitTermination = remitParsed ? fmtMinguoSlash(previousWorkday(remitParsed)) : '○年○月○日';
-  const checkTermination = checkParsed ? fmtMinguoSlash(previousWorkday(checkParsed)) : '○年○月○日';
-  if (hasRemit && hasCheck && remitTermination !== checkTermination) {
-    lines.push(`${remitTermination} 匯款保單解約`);
-    lines.push(`${checkTermination} 支票保單解約`);
-  } else {
-    lines.push(`${hasRemit ? remitTermination : checkTermination} 解約`);
+  const groups = [];
+  if (hasRemit) {
+    const terminationDate = remitParsed ? previousWorkday(remitParsed) : null;
+    groups.push({
+      order: terminationDate ? terminationDate.getTime() : Number.MAX_SAFE_INTEGER,
+      lines: [
+        `${terminationDate ? fmtMinguoSlash(terminationDate) : '○年○月○日'}${hasCheck ? ' 匯款保單解約' : ' 解約'}`,
+        remitParsed ? `${fmtMinguoSlash(remitParsed)} 匯款` : '○年○月○日 匯款'
+      ]
+    });
   }
-  if (hasRemit) lines.push(remitParsed ? `${fmtMinguoSlash(remitParsed)} 匯款` : '○年○月○日 匯款');
   if (hasCheck) {
-    lines.push(checkParsed ? `${fmtMinguoSlash(checkParsed)} 開票` : '○年○月○日 開票');
+    const terminationDate = checkParsed ? previousWorkday(checkParsed) : null;
     // 收支票日／寄出支票日無法從開票日推算（屬獨立資訊），但年月比照日期欄位預填，只留「日」給使用者補
     const now = new Date();
-    lines.push(`收支票日／寄出支票日：${now.getFullYear()-1911}年${now.getMonth()+1}月日`);
+    groups.push({
+      order: terminationDate ? terminationDate.getTime() : Number.MAX_SAFE_INTEGER,
+      lines: [
+        `${terminationDate ? fmtMinguoSlash(terminationDate) : '○年○月○日'}${hasRemit ? ' 支票保單解約' : ' 解約'}`,
+        checkParsed ? `${fmtMinguoSlash(checkParsed)} 開票` : '○年○月○日 開票',
+        `收支票日／寄出支票日：${now.getFullYear()-1911}年${now.getMonth()+1}月日`
+      ]
+    });
   }
+  groups.sort((a, b) => a.order - b.order).forEach(group => lines.push(...group.lines));
 
   const note3Type = document.getElementById('note3Type').value;
   // 「函覆」後面接本件公文文號，供對內查核；文號未填時就不加空括號
