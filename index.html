@@ -980,7 +980,11 @@ textarea { resize: vertical; min-height: 70px; }
             </div>
           </div>
           <div style="margin-top:14px;">
-            <button class="primary-btn" style="margin-bottom:0;" onclick="printEnvelope()">🖨️ 列印信封</button>
+            <div class="grid2">
+              <button class="primary-btn" style="margin-bottom:0;" onclick="printEnvelope()">🖨️ 列印信封</button>
+              <button class="secondary-btn" style="margin-bottom:0;" onclick="printTerminationReceipt()">📮 列印回執聯（雙掛號時使用）</button>
+            </div>
+            <div style="font-size:12px;color:var(--text-mid);margin-top:7px;">回執聯會帶入案件的「執行命令字號」，不是回函公文文號。第一次列印請先用空白紙測試，列印比例選擇 100％。</div>
           </div>
           <details style="margin-top:14px;">
             <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--navy);">📇 管理常用收件人</summary>
@@ -1006,6 +1010,11 @@ textarea { resize: vertical; min-height: 70px; }
                   <label class="field-label">寄件單位名稱</label>
                   <input type="text" id="set-unit" placeholder="○○作業科○○組" oninput="saveSenderSettings()">
                 </div>
+                <div>
+                  <label class="field-label">寄件人郵遞區號</label>
+                  <input type="text" id="set-zip" placeholder="○○○" inputmode="numeric" oninput="saveSenderSettings()">
+                </div>
+                <div></div>
                 <div class="full">
                   <label class="field-label">寄件地址</label>
                   <input type="text" id="set-addr" placeholder="○○市○○區○○路○號○樓" oninput="saveSenderSettings()">
@@ -1334,7 +1343,11 @@ textarea { resize: vertical; min-height: 70px; }
             <div>會依收件人張數一次輸出，每張各自成頁。收件人超過 4 字時，稱謂會自成一行排在左邊；<strong>在稱謂前面加空格可讓它往下移，一格＝一個字</strong>。版面與校正值與解約件共用，若需微調請到「解約件」的信封版面校正。</div>
           </div>
           <div style="margin-top:14px;">
-            <button class="primary-btn" style="margin-bottom:0;" onclick="ntPrintEnvelopes()" id="nt-env-print-btn">🖨️ 列印信封</button>
+            <div class="grid2">
+              <button class="primary-btn" style="margin-bottom:0;" onclick="ntPrintEnvelopes()" id="nt-env-print-btn">🖨️ 列印信封</button>
+              <button class="secondary-btn" style="margin-bottom:0;" onclick="ntPrintReceipts()" id="nt-receipt-print-btn">📮 列印回執聯</button>
+            </div>
+            <div style="font-size:12px;color:var(--text-mid);margin-top:7px;">每位收件人各印一張；回執聯使用「執行命令字號」，不是回函公文文號。第一次列印請先用空白紙測試，列印比例選擇 100％。</div>
           </div>
         </div>
       </div>
@@ -1371,6 +1384,10 @@ textarea { resize: vertical; min-height: 70px; }
       <!-- 只留最近四筆，新增一筆就把最舊的那筆刪掉 -->
       <div style="font-size:11.5px;color:var(--text-mid);line-height:1.8;">
         <div style="margin-bottom:8px;">
+          <strong>v1.11</strong>　2026-08-22<br>
+          解約與非解約信封頁新增回執聯套印；每位收件人各印一張並帶入執行命令字號；寄件人稱呼統一為「姓氏＋專員」
+        </div>
+        <div style="margin-bottom:8px;">
           <strong>v1.10</strong>　2026-08-22<br>
           附件清單移到公文預覽；非解約件會依匯款、支票或混合給付，自動顯示實際需要的對內與對外附件
         </div>
@@ -1381,10 +1398,6 @@ textarea { resize: vertical; min-height: 70px; }
         <div style="margin-bottom:8px;">
           <strong>v1.8</strong>　2026-08-22<br>
           解約件支援多幣別與每張保單分別選擇匯款或支票；公文自動列出實際手續費；新增「無有效保單」第三點選項；可下載及還原寄件人、信封校正與自存常用收件人設定
-        </div>
-        <div style="margin-bottom:8px;">
-          <strong>v1.7</strong>　2026-08-20<br>
-          加強離線資安限制與輸入內容防護，確保異常輸入也無法觸發對外連線
         </div>
       </div>
     </div>
@@ -1418,7 +1431,7 @@ textarea { resize: vertical; min-height: 70px; }
 <script>
 // ===== VERSION / 版權資訊 =====
 // 本工具原創設計、開發：Miyabi。每次更新請同步修改這裡的版本號與日期。
-const APP_VERSION = 'v1.10';
+const APP_VERSION = 'v1.11';
 const APP_UPDATED = '2026-08-22';
 const APP_AUTHOR = 'Miyabi';
 console.log(`%c法扣案件公文套版工具 ${APP_VERSION}`, 'font-weight:bold;color:#c4973a;');
@@ -2242,13 +2255,18 @@ function getEnvData() {
     zip: document.getElementById('env-zip').value || '000000',
     addr: document.getElementById('env-addr').value || '○○縣○○市○○路○號',
     docnum: document.getElementById('env-docnum').value || '',
+    ordernum: document.getElementById('orderNum').value.trim(),
     sender,   // 寄件人資訊來自使用者設定，程式不內建任何機關資料
     title: envTitle,
   };
 }
 // 寄件人各行的組法：欄位未填就整段略過，避免印出「　小姐」「電話」這種殘缺文字
+function staffLabel(value) {
+  const staff = (value || '').trim().replace(/(?:先生|小姐|女士|專員)$/u, '');
+  return staff ? `${staff}專員` : '';
+}
 function senderLine1(s) {
-  return [s.unit, s.staff ? `${s.staff}小姐` : ''].filter(Boolean).join('　');
+  return [s.unit, staffLabel(s.staff)].filter(Boolean).join('　');
 }
 function senderLine3(s, docnum) {
   // 公文編號與代表號用 Arial（比照範本），分機維持標楷體
@@ -2427,6 +2445,59 @@ function printEnvelopes(dataList) {
 }
 function printEnvelope() { printEnvelopes([getEnvData()]); }
 
+// ===== PRINT RECEIPT（雙掛號回執聯套印，只印文字） =====
+// 【版型來源】回執聯(列印範本).pdf。紙張 176 x 250mm，欄位位置直接依 PDF 實測，
+// 不使用範本中的任何公司或個人資料。回執聯文號一律使用法院／執行機關的執行命令字號。
+const RECEIPT_PAPER = { w:176, h:250 };
+const RECEIPT_BASE = {
+  recipientZip:  { left:110.5, top:46.6, pt:14.0 },
+  recipientAddr: { left:104.8, top:53.4, pt:12.0 },
+  recipientName: { left: 98.5, top:53.4, pt:13.0 },
+  orderNum:      { left: 92.1, top:53.4, pt:12.0 },
+  senderZip:     { left: 82.6, top:69.9, pt:18.0 },
+  senderAddr:    { left: 70.1, top:77.0, pt:13.0 },
+  senderUnit:    { left: 63.7, top:77.0, pt:13.0 },
+  senderStaff:   { left: 57.4, top:77.0, pt:13.0 },
+  senderExt:     { left: 51.0, top:77.0, pt:13.0 },
+};
+function buildReceiptHTML(data) {
+  const B = RECEIPT_BASE;
+  const vertical = (cfg, value, extra='') => value ?
+    `<div style="position:absolute;left:${cfg.left}mm;top:${cfg.top}mm;font-size:${cfg.pt}pt;line-height:1;writing-mode:vertical-rl;text-orientation:upright;white-space:nowrap;${extra}">${rotateNums(value)}</div>` : '';
+  const title = (data.title || '').trim();
+  const recipient = `${data.name || '○○'}${title && !['啟','收'].includes(title) ? title : ''}收`;
+  return `<div style="width:${RECEIPT_PAPER.w}mm;height:${RECEIPT_PAPER.h}mm;position:relative;overflow:hidden;background:#fff;font-family:'標楷體','DFKai-SB',serif;">
+    ${vertical(B.recipientZip, data.zip || '000')}
+    ${vertical(B.recipientAddr, data.addr || '○○縣○○市○○路○號')}
+    ${vertical(B.recipientName, recipient)}
+    ${vertical(B.orderNum, data.ordernum || '○○字第○號')}
+    ${vertical(B.senderZip, data.sender?.zip || '')}
+    ${vertical(B.senderAddr, data.sender?.addr || '')}
+    ${vertical(B.senderUnit, data.sender?.unit || '', 'max-height:150mm;white-space:normal;')}
+    ${vertical(B.senderStaff, staffLabel(data.sender?.staff))}
+    ${vertical(B.senderExt, data.sender?.ext ? `分機${data.sender.ext}` : '')}
+  </div>`;
+}
+function printReceipts(dataList) {
+  if (!dataList.length) { alert('請先填寫至少一位收件人。'); return; }
+  const pages = dataList.map((d, i) =>
+    `<div style="${i < dataList.length - 1 ? 'page-break-after:always;' : ''}">${buildReceiptHTML(d)}</div>`
+  ).join('');
+  const win = window.open('', '_blank', 'width=700,height=900');
+  if (!win) { alert('瀏覽器阻擋了列印視窗，請允許此網頁開啟彈出式視窗。'); return; }
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>回執聯列印</title>
+    <style>
+      @page { size:${RECEIPT_PAPER.w}mm ${RECEIPT_PAPER.h}mm; margin:0; }
+      * { box-sizing:border-box; }
+      html,body { margin:0; padding:0; background:#fff; }
+      @media print { body { width:${RECEIPT_PAPER.w}mm; } }
+    </style></head><body>${pages}
+    <script>window.onload=()=>{ setTimeout(()=>window.print(),300); }<\/script>
+  </body></html>`);
+  win.document.close();
+}
+function printTerminationReceipt() { printReceipts([getEnvData()]); }
+
 // ===== DOWNLOAD DETAIL PDF (已廢棄，改用列印) =====
 async function downloadDetailPDF() { printDetail(); }
 
@@ -2457,7 +2528,7 @@ function syncDocNum() {
 // ===== 寄件人設定 =====
 // 各單位的寄件人資訊（單位名稱、地址、代表號、專員、公文文號前綴）不寫在程式中，
 // 由使用者自行設定並僅儲存於本機瀏覽器，因此原始碼不含任何機關／公司資訊。
-const SENDER_FIELDS = ['unit','addr','tel','staff','ext'];
+const SENDER_FIELDS = ['unit','zip','addr','tel','staff','ext'];
 const senderEl = k => document.getElementById('set-' + k);
 
 function getSenderSettings() {
@@ -2486,7 +2557,7 @@ function updateSenderHint() {
   const summaryText = document.getElementById('sender-current-summary-text');
   if (summary && summaryText) {
     summary.classList.toggle('hidden', notSet);
-    const parts = [s.unit, s.staff ? `${s.staff}專員` : '', s.ext ? `分機${s.ext}` : ''].filter(Boolean);
+    const parts = [s.unit, staffLabel(s.staff), s.ext ? `分機${s.ext}` : ''].filter(Boolean);
     summaryText.textContent = `目前寄件人：${parts.join('／') || '已設定'}`;
   }
 }
@@ -3141,6 +3212,8 @@ function ntRenderEnvelopes() {
     </div>`).join('');
   const btn = document.getElementById('nt-env-print-btn');
   if (btn) btn.textContent = `🖨️ 列印信封（${ntEnvelopes.length} 張）`;
+  const receiptBtn = document.getElementById('nt-receipt-print-btn');
+  if (receiptBtn) receiptBtn.textContent = `📮 列印回執聯（${ntEnvelopes.length} 張）`;
   // 只有真的有領支票的債權人時才顯示帶入按鈕，沒有就不佔版面
   const fill = document.getElementById('nt-env-fill-btn');
   if (fill) {
@@ -3196,6 +3269,18 @@ function ntPrintEnvelopes() {
     // 只去尾端空白：開頭的空格是使用者用來把稱謂往下推的，trim() 會把它砍掉
     title: e.title.replace(/\s+$/, ''),
     docnum, sender,
+  })));
+}
+function ntPrintReceipts() {
+  const sender = getSenderSettings();
+  const ordernum = ntVal('nt-orderNum');
+  printReceipts(ntEnvelopes.map(e => ({
+    name: e.name.trim() || '○○',
+    zip: e.zip.trim() || '000',
+    addr: e.addr.trim() || '○○縣○○市○○路○號',
+    title: e.title.replace(/\s+$/, ''),
+    ordernum,
+    sender,
   })));
 }
 
