@@ -1164,18 +1164,18 @@ textarea { resize: vertical; min-height: 70px; }
 
       <!-- 債權人與金額 -->
       <div class="section">
-        <div class="section-header"><span class="gold-dot"></span>債權人給付金額</div>
+        <div class="section-header"><span class="gold-dot"></span>債權人實際給付金額</div>
         <div class="section-body">
           <div class="alert-box alert-navy" style="margin-bottom:10px;">
             <span>ℹ️</span>
-            <div>一位債權人一筆金額，並各自指定匯款或支票。<br>
-              債權人名稱有填就用名稱（例：至國泰世華銀行指定帳號）；未填則依人數，三人以上才寫數字。</div>
+            <div>每位債權人填寫一筆實際給付金額，並選擇匯款或支票。<br>
+              此處填寫的是已扣除手續費後，實際匯款或實際開票的金額；債權人名稱有填，公文就會帶入名稱。</div>
           </div>
           <div id="nt-creditors"></div>
           <div id="nt-payment-details-hints"></div>
           <button class="add-btn" onclick="ntAddCreditor()">＋ 新增債權人</button>
           <div class="total-bar">
-            <span class="label">給付總額</span>
+            <span class="label">實際給付總額</span>
             <span class="value" id="nt-total">0 元</span>
           </div>
           <label class="checkbox-row" style="margin-top:12px;">
@@ -1387,6 +1387,10 @@ textarea { resize: vertical; min-height: 70px; }
       <!-- 只留最近四筆，新增一筆就把最舊的那筆刪掉 -->
       <div style="font-size:11.5px;color:var(--text-mid);line-height:1.8;">
         <div style="margin-bottom:8px;">
+          <strong>v1.13</strong>　2026-08-22<br>
+          非解約金額改為「實際給付金額」；總額明確顯示已扣除或未扣除手續費，避免支票金額被誤認為還要再扣一次
+        </div>
+        <div style="margin-bottom:8px;">
           <strong>v1.12</strong>　2026-08-22<br>
           解約與非解約信封頁顯示同一套寄件人、信封版面校正及設定備份區塊，不必切換情境修改設定
         </div>
@@ -1397,10 +1401,6 @@ textarea { resize: vertical; min-height: 70px; }
         <div style="margin-bottom:8px;">
           <strong>v1.10</strong>　2026-08-22<br>
           附件清單移到公文預覽；非解約件會依匯款、支票或混合給付，自動顯示實際需要的對內與對外附件
-        </div>
-        <div style="margin-bottom:8px;">
-          <strong>v1.9</strong>　2026-08-22<br>
-          手續費不再被系統自動清除或搬移；給付資料未完整時可一鍵回到正確欄位；解約件加入常用收件人；重新整理非解約給付項目與共用設定備份介面
         </div>
       </div>
     </div>
@@ -1434,7 +1434,7 @@ textarea { resize: vertical; min-height: 70px; }
 <script>
 // ===== VERSION / 版權資訊 =====
 // 本工具原創設計、開發：Miyabi。每次更新請同步修改這裡的版本號與日期。
-const APP_VERSION = 'v1.12';
+const APP_VERSION = 'v1.13';
 const APP_UPDATED = '2026-08-22';
 const APP_AUTHOR = 'Miyabi';
 console.log(`%c法扣案件公文套版工具 ${APP_VERSION}`, 'font-weight:bold;color:#c4973a;');
@@ -2894,7 +2894,7 @@ function ntRenderCreditors() {
                  oninput="ntSetCreditor(${i},'name',this.value)" style="width:100%">
         </div>
         <div>
-          <label class="field-label">給付金額</label>
+          <label class="field-label">實際給付金額</label>
           <input type="text" value="${escapeHtml(cr.amount)}" placeholder="○○○,○○○" inputmode="numeric"
                  oninput="ntSetCreditor(${i},'amount',this.value)" style="width:100%">
         </div>
@@ -3072,9 +3072,9 @@ function ntUpdate() {
   document.getElementById('nt-note3-custom-field').classList.toggle('hidden', t3 !== 'custom');
 
   const total = ntCreditors.reduce((s,c) => s + toNum(c.amount), 0);
-  const fee = document.getElementById('nt-noFee')?.checked ? 0 : NT_FEE;
-  document.getElementById('nt-total').textContent =
-    fmtNum(total) + ' 元' + (fee ? `（另扣手續費 ${fee} 元）` : '');
+  const noFee = document.getElementById('nt-noFee')?.checked;
+  document.getElementById('nt-total').textContent = fmtNum(total) + ' 元'
+    + (noFee ? '（未扣除手續費）' : `（已扣除手續費${NT_FEE}元）`);
 
   if (!ntNoteEdited) document.getElementById('nt-internalNote').value = ntBuildNote();
   updateNtPaymentDetailsHints();
