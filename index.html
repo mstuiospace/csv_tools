@@ -994,6 +994,8 @@ textarea { resize: vertical; min-height: 70px; }
             </div>
           </details>
 
+          <div id="term-shared-envelope-settings-mount">
+          <div id="shared-envelope-settings">
           <div id="sender-current-summary" class="alert-box alert-navy hidden" style="margin-top:14px;margin-bottom:0;">
             <span>🏢</span><div id="sender-current-summary-text"></div>
           </div>
@@ -1077,6 +1079,8 @@ textarea { resize: vertical; min-height: 70px; }
 
           <button class="secondary-btn" style="margin:14px 0 0;" onclick="showSettingsBackup()">💾 備份／還原寄件人及信封設定（含常用收件人）</button>
           <div style="font-size:12px;color:var(--text-mid);margin-top:7px;">平時使用不受影響。若可能清除瀏覽紀錄或更換電腦，建議先備份目前設定。</div>
+          </div>
+          </div>
         </div>
       </div>
 
@@ -1311,7 +1315,7 @@ textarea { resize: vertical; min-height: 70px; }
         <div class="section-body">
           <div id="nt-sender-hint" class="alert-box alert-red hidden" style="margin-bottom:12px;">
             <span>⚠️</span>
-            <div>尚未設定寄件人資訊，信封的寄件人欄位會是空白。請先到「解約件」的信封區展開「寄件人設定」填寫，兩個情境共用同一份設定。</div>
+            <div>尚未設定寄件人資訊，信封與回執聯的寄件人欄位會是空白。請在本頁下方展開「寄件人設定」填寫，只需設定一次。</div>
           </div>
 
           <div id="nt-env-list"></div>
@@ -1330,8 +1334,7 @@ textarea { resize: vertical; min-height: 70px; }
               <div id="nt-org-manager"></div>
             </div>
           </details>
-          <button class="secondary-btn" style="margin:14px 0 0;" onclick="showSettingsBackup()">💾 備份／還原寄件人及信封設定（含常用收件人）</button>
-          <div style="font-size:12px;color:var(--text-mid);margin-top:7px;">平時使用不受影響。若可能清除瀏覽紀錄或更換電腦，建議先備份目前設定。</div>
+          <div id="nt-shared-envelope-settings-mount"></div>
 
           <div style="margin-top:14px;">
             <label class="field-label">公文字號 <span style="font-size:10px;color:var(--text-light);">（自動帶入填寫頁的文號，可在此另行修改）</span></label>
@@ -1340,7 +1343,7 @@ textarea { resize: vertical; min-height: 70px; }
 
           <div class="alert-box alert-gold" style="margin-top:14px;">
             <span>💡</span>
-            <div>會依收件人張數一次輸出，每張各自成頁。收件人超過 4 字時，稱謂會自成一行排在左邊；<strong>在稱謂前面加空格可讓它往下移，一格＝一個字</strong>。版面與校正值與解約件共用，若需微調請到「解約件」的信封版面校正。</div>
+            <div>會依收件人張數一次輸出，每張各自成頁。收件人超過 4 字時，稱謂會自成一行排在左邊；<strong>在稱謂前面加空格可讓它往下移，一格＝一個字</strong>。若需微調列印位置，可直接使用本頁下方的「信封版面校正」。</div>
           </div>
           <div style="margin-top:14px;">
             <div class="grid2">
@@ -1384,6 +1387,10 @@ textarea { resize: vertical; min-height: 70px; }
       <!-- 只留最近四筆，新增一筆就把最舊的那筆刪掉 -->
       <div style="font-size:11.5px;color:var(--text-mid);line-height:1.8;">
         <div style="margin-bottom:8px;">
+          <strong>v1.12</strong>　2026-08-22<br>
+          解約與非解約信封頁顯示同一套寄件人、信封版面校正及設定備份區塊，不必切換情境修改設定
+        </div>
+        <div style="margin-bottom:8px;">
           <strong>v1.11</strong>　2026-08-22<br>
           解約與非解約信封頁新增回執聯套印；每位收件人各印一張並帶入執行命令字號；寄件人稱呼統一為「姓氏＋專員」
         </div>
@@ -1394,10 +1401,6 @@ textarea { resize: vertical; min-height: 70px; }
         <div style="margin-bottom:8px;">
           <strong>v1.9</strong>　2026-08-22<br>
           手續費不再被系統自動清除或搬移；給付資料未完整時可一鍵回到正確欄位；解約件加入常用收件人；重新整理非解約給付項目與共用設定備份介面
-        </div>
-        <div style="margin-bottom:8px;">
-          <strong>v1.8</strong>　2026-08-22<br>
-          解約件支援多幣別與每張保單分別選擇匯款或支票；公文自動列出實際手續費；新增「無有效保單」第三點選項；可下載及還原寄件人、信封校正與自存常用收件人設定
         </div>
       </div>
     </div>
@@ -1431,7 +1434,7 @@ textarea { resize: vertical; min-height: 70px; }
 <script>
 // ===== VERSION / 版權資訊 =====
 // 本工具原創設計、開發：Miyabi。每次更新請同步修改這裡的版本號與日期。
-const APP_VERSION = 'v1.11';
+const APP_VERSION = 'v1.12';
 const APP_UPDATED = '2026-08-22';
 const APP_AUTHOR = 'Miyabi';
 console.log(`%c法扣案件公文套版工具 ${APP_VERSION}`, 'font-weight:bold;color:#c4973a;');
@@ -1485,7 +1488,18 @@ function switchTab(t) {
     document.getElementById('tab-'+name).className = 'tab ' + (name===t?'active':'inactive');
   });
   if (t === 'preview') { generatePreview(); renderAttach(); }
-  if (t === 'attach') { generateDocTable(); renderAttach(); }
+  if (t === 'attach') { placeSharedEnvelopeSettings('termination'); generateDocTable(); renderAttach(); }
+}
+
+// 寄件人、信封校正與備份是同一份實際設定區塊；依目前情境移到對應信封頁，
+// 避免複製兩套欄位後發生兩邊內容不同步。
+function placeSharedEnvelopeSettings(target) {
+  const panel = document.getElementById('shared-envelope-settings');
+  const mount = document.getElementById(target === 'nonterm'
+    ? 'nt-shared-envelope-settings-mount'
+    : 'term-shared-envelope-settings-mount');
+  if (panel && mount && panel.parentElement !== mount) mount.appendChild(panel);
+  updateSenderHint();
 }
 
 // ===== PAY METHOD =====
@@ -2811,6 +2825,7 @@ function ntSwitchTab(t) {
   });
   if (t === 'preview') ntRenderDoc();
   if (t === 'env') {
+    placeSharedEnvelopeSettings('nonterm');
     // 文號自動跟著填寫頁，除非使用者在信封這邊另行改過（同解約件的保護邏輯）
     const el = document.getElementById('nt-env-docnum');
     if (!ntEnvDocNumEdited) el.value = ntVal('nt-docNum');
