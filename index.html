@@ -1141,18 +1141,17 @@ textarea { resize: vertical; min-height: 70px; }
         </div>
       </div>
 
-      <!-- 債權人、實際給付金額及給付方式 -->
+      <!-- 給付對象、實際給付金額及給付方式 -->
       <div class="section">
-        <div class="section-header"><span class="gold-dot"></span>債權人、實際給付金額及給付方式</div>
+        <div class="section-header"><span class="gold-dot"></span>給付對象、實際給付金額及給付方式</div>
         <div class="section-body">
           <div class="alert-box alert-navy" style="margin-bottom:10px;">
             <span>ℹ️</span>
-            <div>每位債權人填寫一筆實際給付金額，並選擇匯款或支票。<br>
-              此處填寫的是已扣除手續費後，實際匯款或實際開票的金額；債權人名稱有填，公文就會帶入名稱。</div>
+            <div>每個給付對象填寫一筆實際給付金額，並選擇匯款或支票。<br>
+              此處填寫的是已扣除手續費後，實際匯款或實際開票的金額。</div>
           </div>
           <div id="nt-creditors"></div>
-          <div id="nt-payment-method-hints"></div>
-          <button class="add-btn" onclick="ntAddCreditor()">＋ 新增債權人</button>
+          <button class="add-btn" onclick="ntAddCreditor()">＋ 新增給付對象</button>
           <div class="total-bar">
             <span class="label">實際給付總額</span>
             <span class="value" id="nt-total">0 元</span>
@@ -1168,19 +1167,16 @@ textarea { resize: vertical; min-height: 70px; }
       <div class="section hidden" id="nt-payment-date-section">
         <div class="section-header"><span class="gold-dot"></span>給付日期</div>
         <div class="section-body">
-          <div class="alert-box alert-navy" style="margin-bottom:10px;">
-            <span>ℹ️</span>
-            <div id="nt-payment-date-guide"></div>
-          </div>
-          <div id="nt-payment-date-hints"></div>
           <div class="grid2">
             <div id="nt-remit-date-field" class="hidden">
               <label class="field-label">匯款日期</label>
               <input type="text" id="nt-remitDate" placeholder="115年8月4日" oninput="ntUpdate()">
+              <div id="nt-remit-date-hint" class="hidden" style="font-size:11px;color:#c0392b;margin-top:5px;">請補上實際匯款日期。</div>
             </div>
             <div id="nt-check-date-field" class="hidden">
               <label class="field-label">開票日期</label>
               <input type="text" id="nt-checkDate" placeholder="11○年○月○日" oninput="ntUpdate()">
+              <div id="nt-check-date-hint" class="hidden" style="font-size:11px;color:#c0392b;margin-top:5px;">請補上實際開票日期。</div>
             </div>
           </div>
         </div>
@@ -1389,6 +1385,10 @@ textarea { resize: vertical; min-height: 70px; }
       <!-- 只留最近四筆，新增一筆就把最舊的那筆刪掉 -->
       <div style="font-size:11.5px;color:var(--text-mid);line-height:1.8;">
         <div style="margin-bottom:8px;">
+          <strong>v1.15</strong>　2026-08-23<br>
+          非解約給付對象可選債權人或自行填寫法院、移送機關等名稱；日期提醒改為直接顯示在欄位下方
+        </div>
+        <div style="margin-bottom:8px;">
           <strong>v1.14</strong>　2026-08-22<br>
           非解約填寫順序調整為案件資料、給付項目、債權人與給付方式；選擇給付方式後，只顯示本案需要填寫的日期
         </div>
@@ -1399,10 +1399,6 @@ textarea { resize: vertical; min-height: 70px; }
         <div style="margin-bottom:8px;">
           <strong>v1.12</strong>　2026-08-22<br>
           解約與非解約信封頁顯示同一套寄件人、信封版面校正及設定備份區塊，不必切換情境修改設定
-        </div>
-        <div style="margin-bottom:8px;">
-          <strong>v1.11</strong>　2026-08-22<br>
-          解約與非解約信封頁新增回執聯套印；每位收件人各印一張並帶入執行命令字號；寄件人稱呼統一為「姓氏＋專員」
         </div>
       </div>
     </div>
@@ -1436,8 +1432,8 @@ textarea { resize: vertical; min-height: 70px; }
 <script>
 // ===== VERSION / 版權資訊 =====
 // 本工具原創設計、開發：Miyabi。每次更新請同步修改這裡的版本號與日期。
-const APP_VERSION = 'v1.14';
-const APP_UPDATED = '2026-08-22';
+const APP_VERSION = 'v1.15';
+const APP_UPDATED = '2026-08-23';
 const APP_AUTHOR = 'Miyabi';
 console.log(`%c法扣案件公文套版工具 ${APP_VERSION}`, 'font-weight:bold;color:#c4973a;');
 console.log(`© 2026 ${APP_AUTHOR}．原創設計與開發．最後更新：${APP_UPDATED}`);
@@ -2791,7 +2787,7 @@ function copyInternalNote() {
 const NT_TYPES = ['生存保險金','滿期保險金','返還保價金','紅利保險金'];
 const NT_FEE = 250;
 
-let ntCreditors = [{ name:'', amount:'', pay:'' }];
+let ntCreditors = [{ type:'creditor', name:'', amount:'', pay:'' }];
 let ntSelectedTypes = [];
 let ntTypeMode = 'specific'; // specific：個別項目／generic：已得請領保險金／custom：自填
 let ntNoteEdited = false;      // 對內備註是否被手動改過
@@ -2881,20 +2877,29 @@ function ntTypeText() {
   return list.slice(0, -1).join('、') + '及' + list[list.length - 1];
 }
 
-// ---- 債權人：各自金額與給付方式 ----
+// ---- 給付對象：可為債權人，或自填法院／移送機關等其他對象 ----
 function ntRenderCreditors() {
   document.getElementById('nt-creditors').innerHTML = ntCreditors.map((cr,i) => `
     <div class="policy-card">
       <div class="policy-header">
-        <span class="policy-num">債權人 ${i+1}</span>
+        <span class="policy-num">給付對象 ${i+1}</span>
         ${ntCreditors.length>1 ? `<button class="remove-btn" onclick="ntRemoveCreditor(${i})">✕</button>` : ''}
       </div>
       <div class="grid2">
         <div class="full">
-          <label class="field-label">債權人名稱 <span style="font-size:10px;color:var(--text-light);">（可不填）</span></label>
-          <input type="text" value="${escapeHtml(cr.name)}" placeholder="例：○○銀行"
+          <label class="field-label">對象類型</label>
+          <div class="toggle-group">
+            <button class="toggle-btn${cr.type!=='custom'?' active':''}" onclick="ntSetCreditor(${i},'type','creditor')">債權人</button>
+            <button class="toggle-btn${cr.type==='custom'?' active':''}" onclick="ntSetCreditor(${i},'type','custom')">自填</button>
+          </div>
+        </div>
+        <div class="full">
+          <label class="field-label">${cr.type==='custom' ? '給付對象名稱' : '債權人名稱 <span style="font-size:10px;color:var(--text-light);">（可不填）</span>'}</label>
+          <input type="text" value="${escapeHtml(cr.name)}" placeholder="${cr.type==='custom' ? '例：○○地方法院或○○移送機關' : '例：○○銀行'}"
                  oninput="ntSetCreditor(${i},'name',this.value)" style="width:100%">
-          <div style="font-size:11px;color:var(--text-light);margin-top:5px;">填寫後，公文會寫出債權人名稱；未填時會統稱「債權人」。</div>
+          ${cr.type==='custom'
+            ? `<div id="nt-target-name-hint-${i}" style="font-size:11px;color:${cr.name.trim() ? 'var(--text-light)' : '#c0392b'};margin-top:5px;">${cr.name.trim() ? '公文會帶入這個名稱。' : '請填寫法院、移送機關或其他給付對象名稱。'}</div>`
+            : '<div style="font-size:11px;color:var(--text-light);margin-top:5px;">填寫後，公文會寫出名稱；未填時會統稱「債權人」。</div>'}
         </div>
         <div>
           <label class="field-label">實際給付金額</label>
@@ -2907,15 +2912,16 @@ function ntRenderCreditors() {
             <button class="toggle-btn${cr.pay==='匯款'?' active':''}" onclick="ntSetCreditor(${i},'pay','匯款')">匯款</button>
             <button class="toggle-btn${cr.pay==='支票'?' active':''}" onclick="ntSetCreditor(${i},'pay','支票')">支票</button>
           </div>
+          ${cr.pay ? '' : '<div style="font-size:11px;color:#c0392b;margin-top:5px;">請選擇匯款或支票。</div>'}
         </div>
       </div>
     </div>`).join('');
 }
-function ntAddCreditor() { ntCreditors.push({ name:'', amount:'', pay:'' }); ntRenderCreditors(); ntUpdate(); }
+function ntAddCreditor() { ntCreditors.push({ type:'creditor', name:'', amount:'', pay:'' }); ntRenderCreditors(); ntUpdate(); }
 function ntRemoveCreditor(i) { ntCreditors.splice(i,1); ntRenderCreditors(); ntUpdate(); }
 function ntSetCreditor(i, k, v) {
   ntCreditors[i][k] = v;
-  if (k === 'pay') ntRenderCreditors();   // 需重繪以更新按鈕的選取狀態
+  if (k === 'pay' || k === 'type') ntRenderCreditors();
   ntUpdate();
 }
 function ntUpdatePaymentDateVisibility() {
@@ -2927,20 +2933,17 @@ function ntUpdatePaymentDateVisibility() {
   section?.classList.toggle('hidden', !hasRemit && !hasCheck);
   if (remitField) remitField.className = hasRemit ? (hasCheck ? '' : 'full') : 'hidden';
   if (checkField) checkField.className = hasCheck ? (hasRemit ? '' : 'full') : 'hidden';
-  const guide = document.getElementById('nt-payment-date-guide');
-  if (guide) guide.textContent = hasRemit && hasCheck
-    ? '本案同時有匯款與支票，請確認匯款日期及開票日期。'
-    : hasRemit
-      ? '本案使用匯款，請確認匯款日期。'
-      : hasCheck
-        ? '本案使用支票，請確認開票日期。'
-        : '';
+  document.getElementById('nt-remit-date-hint')?.classList.toggle('hidden', !hasRemit || !!parseMinguoDate(ntVal('nt-remitDate')));
+  document.getElementById('nt-check-date-hint')?.classList.toggle('hidden', !hasCheck || !!parseMinguoDate(ntVal('nt-checkDate')));
 }
 function ntPaymentIssues() {
   const issues = [];
-  const noMethod = ntCreditors.map((c, i) => c.pay ? '' : `債權人 ${i + 1}`).filter(Boolean);
+  const noMethod = ntCreditors.map((c, i) => c.pay ? '' : `給付對象 ${i + 1}`).filter(Boolean);
   if (noMethod.length)
     issues.push({ kind:'method', method:'給付方式', missing:noMethod });
+  const noCustomName = ntCreditors.map((c, i) => c.type === 'custom' && !c.name.trim() ? `給付對象 ${i + 1}` : '').filter(Boolean);
+  if (noCustomName.length)
+    issues.push({ kind:'target', method:'給付對象名稱', missing:noCustomName });
   if (ntCreditors.some(c => c.pay === '匯款') && !parseMinguoDate(ntVal('nt-remitDate')))
     issues.push({ kind:'date', method:'匯款', missing:['匯款日期'] });
   if (ntCreditors.some(c => c.pay === '支票') && !parseMinguoDate(ntVal('nt-checkDate')))
@@ -2948,27 +2951,24 @@ function ntPaymentIssues() {
   return issues;
 }
 function ntPaymentIssueHtml(issue, preview = false) {
-  const action = preview ? '返回填寫' : (issue.kind === 'method' ? '前往選擇給付方式' : `前往填寫${issue.method}日期`);
   const message = issue.kind === 'method'
     ? `請先選擇給付方式：${issue.missing.join('、')}。`
+    : issue.kind === 'target'
+      ? `請填寫自填的給付對象名稱：${issue.missing.join('、')}。`
     : `${issue.method}資料尚未完整，請補填：${issue.missing.join('、')}。`;
   return `<div class="alert-box alert-red" style="margin-bottom:10px;"><span>⚠️</span><div style="flex:1;">
     ${message}
-    <button class="mini-btn" style="display:block;margin-top:7px;" onclick="goToNtPaymentDetails('${issue.method}')">${action}</button>
+    ${preview ? `<button class="mini-btn" style="display:block;margin-top:7px;" onclick="goToNtPaymentDetails('${issue.method}')">返回填寫</button>` : ''}
   </div></div>`;
 }
 function updateNtPaymentDetailsHints() {
   const issues = ntPaymentIssues();
-  const methods = document.getElementById('nt-payment-method-hints');
-  const dates = document.getElementById('nt-payment-date-hints');
   const preview = document.getElementById('nt-payment-preview-hints');
-  if (methods) methods.innerHTML = issues.filter(i => i.kind === 'method').map(i => ntPaymentIssueHtml(i)).join('');
-  if (dates) dates.innerHTML = issues.filter(i => i.kind === 'date').map(i => ntPaymentIssueHtml(i)).join('');
   if (preview) preview.innerHTML = issues.map(i => ntPaymentIssueHtml(i, true)).join('');
 }
 function goToNtPaymentDetails(method) {
   ntSwitchTab('form');
-  const id = method === '給付方式' ? 'nt-creditors' : (method === '支票' ? 'nt-checkDate' : 'nt-remitDate');
+  const id = method === '給付方式' || method === '給付對象名稱' ? 'nt-creditors' : (method === '支票' ? 'nt-checkDate' : 'nt-remitDate');
   setTimeout(() => {
     const el = document.getElementById(id);
     el?.scrollIntoView({ behavior:'smooth', block:'center' });
@@ -2976,11 +2976,12 @@ function goToNtPaymentDetails(method) {
   }, 50);
 }
 
-// 依實務寫法組出收款對象：有名稱就列名稱，否則用人數（兩人以內不寫數字）
+// 給付對象可混合：自填名稱直接帶入；未命名債權人依人數統稱
 function ntPayeeText(list) {
   const names = list.map(c => c.name.trim()).filter(Boolean);
-  if (names.length && names.length === list.length) return names.join('、');
-  return list.length >= 3 ? `${toZhNum(list.length)}債權人` : '債權人';
+  const unnamedCreditors = list.filter(c => c.type !== 'custom' && !c.name.trim()).length;
+  if (unnamedCreditors) names.push(unnamedCreditors >= 3 ? `${toZhNum(unnamedCreditors)}債權人` : '債權人');
+  return names.join('、') || '給付對象';
 }
 
 // ---- 公文組出 ----
@@ -3089,6 +3090,13 @@ function ntBuildNote() {
 
 function ntUpdate() {
   ntUpdatePaymentDateVisibility();
+  ntCreditors.forEach((c, i) => {
+    const hint = document.getElementById(`nt-target-name-hint-${i}`);
+    if (!hint) return;
+    const complete = !!c.name.trim();
+    hint.textContent = complete ? '公文會帶入這個名稱。' : '請填寫法院、移送機關或其他給付對象名稱。';
+    hint.style.color = complete ? 'var(--text-light)' : '#c0392b';
+  });
   // 第二點：僅「未予控管」需要填說明點次
   const t2 = ntVal('nt-note2Type');
   document.getElementById('nt-note2-num').classList.toggle('hidden', t2 !== 'nocontrol');
@@ -3360,7 +3368,7 @@ function clearCase() {
     ntSelectedTypes.length = 0;
     ntTypeMode = 'specific';
     ntCreditors.length = 0;
-    ntCreditors.push({ name:'', amount:'', pay:'' });
+    ntCreditors.push({ type:'creditor', name:'', amount:'', pay:'' });
     ntNoteEdited = false;
     ntSubjectEdited = false;
     ntEnvDocNumEdited = false;
