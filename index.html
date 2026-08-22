@@ -891,6 +891,23 @@ textarea { resize: vertical; min-height: 70px; }
         </div>
       </div>
 
+      <!-- 附件提醒：放在公文與明細表之間，方便依序核對 -->
+      <div class="section">
+        <div class="section-header"><span class="gold-dot"></span>📎 附件清單提醒</div>
+        <div class="section-body">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+            <div>
+              <div class="attach-col-title attach-inner" style="margin-bottom:10px;">🔒 對內附件</div>
+              <div id="inner-attach-list"></div>
+            </div>
+            <div>
+              <div class="attach-col-title attach-outer" style="margin-bottom:10px;">📤 對外附件</div>
+              <div id="outer-attach-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="section">
         <div class="section-header"><span class="gold-dot"></span>📊 解約金明細表</div>
         <div class="section-body">
@@ -1051,23 +1068,6 @@ textarea { resize: vertical; min-height: 70px; }
 
           <button class="secondary-btn" style="margin:14px 0 0;" onclick="showSettingsBackup()">💾 備份／還原寄件人及信封設定（含常用收件人）</button>
           <div style="font-size:12px;color:var(--text-mid);margin-top:7px;">平時使用不受影響。若可能清除瀏覽紀錄或更換電腦，建議先備份目前設定。</div>
-        </div>
-      </div>
-
-      <!-- 附件提醒 -->
-      <div class="section">
-        <div class="section-header"><span class="gold-dot"></span>📎 附件清單提醒</div>
-        <div class="section-body">
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
-            <div>
-              <div class="attach-col-title attach-inner" style="margin-bottom:10px;">🔒 對內附件</div>
-              <div id="inner-attach-list"></div>
-            </div>
-            <div>
-              <div class="attach-col-title attach-outer" style="margin-bottom:10px;">📤 對外附件</div>
-              <div id="outer-attach-list"></div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -1277,6 +1277,21 @@ textarea { resize: vertical; min-height: 70px; }
           </div>
         </div>
       </div>
+      <div class="section">
+        <div class="section-header"><span class="gold-dot"></span>📎 附件清單提醒</div>
+        <div class="section-body">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+            <div>
+              <div class="attach-col-title attach-inner" style="margin-bottom:10px;">🔒 對內附件</div>
+              <div id="nt-inner-attach-list"></div>
+            </div>
+            <div>
+              <div class="attach-col-title attach-outer" style="margin-bottom:10px;">📤 對外附件</div>
+              <div id="nt-outer-attach-list"></div>
+            </div>
+          </div>
+        </div>
+      </div>
       <button class="secondary-btn" onclick="ntSwitchTab('form')">← 返回編輯</button>
     </div>
 
@@ -1356,6 +1371,10 @@ textarea { resize: vertical; min-height: 70px; }
       <!-- 只留最近四筆，新增一筆就把最舊的那筆刪掉 -->
       <div style="font-size:11.5px;color:var(--text-mid);line-height:1.8;">
         <div style="margin-bottom:8px;">
+          <strong>v1.10</strong>　2026-08-22<br>
+          附件清單移到公文預覽；非解約件會依匯款、支票或混合給付，自動顯示實際需要的對內與對外附件
+        </div>
+        <div style="margin-bottom:8px;">
           <strong>v1.9</strong>　2026-08-22<br>
           手續費不再被系統自動清除或搬移；給付資料未完整時可一鍵回到正確欄位；解約件加入常用收件人；重新整理非解約給付項目與共用設定備份介面
         </div>
@@ -1366,10 +1385,6 @@ textarea { resize: vertical; min-height: 70px; }
         <div style="margin-bottom:8px;">
           <strong>v1.7</strong>　2026-08-20<br>
           加強離線資安限制與輸入內容防護，確保異常輸入也無法觸發對外連線
-        </div>
-        <div style="margin-bottom:8px;">
-          <strong>v1.6</strong>　2026-08-18<br>
-          非解約給付新增信封，可一次列印多張；收件人可存為常用、一鍵帶入領支票的債權人，並內建法院與執行機關地址
         </div>
       </div>
     </div>
@@ -1403,7 +1418,7 @@ textarea { resize: vertical; min-height: 70px; }
 <script>
 // ===== VERSION / 版權資訊 =====
 // 本工具原創設計、開發：Miyabi。每次更新請同步修改這裡的版本號與日期。
-const APP_VERSION = 'v1.9';
+const APP_VERSION = 'v1.10';
 const APP_UPDATED = '2026-08-22';
 const APP_AUTHOR = 'Miyabi';
 console.log(`%c法扣案件公文套版工具 ${APP_VERSION}`, 'font-weight:bold;color:#c4973a;');
@@ -1456,7 +1471,7 @@ function switchTab(t) {
     document.getElementById('page-'+name).classList.toggle('hidden', name!==t);
     document.getElementById('tab-'+name).className = 'tab ' + (name===t?'active':'inactive');
   });
-  if (t === 'preview') generatePreview();
+  if (t === 'preview') { generatePreview(); renderAttach(); }
   if (t === 'attach') { generateDocTable(); renderAttach(); }
 }
 
@@ -1824,10 +1839,26 @@ function renderAttach() {
   const outerList = ['解約明細表'];
   if (hasCheck) outerList.push('支票影本');
 
+  renderAttachmentLists(innerList, outerList, '');
+}
+function renderNtAttach() {
+  const hasRemit = ntCreditors.some(c => c.pay === '匯款');
+  const hasCheck = ntCreditors.some(c => c.pay === '支票');
+  const innerList = ['總公司照會公文','執行命令'];
+  if (hasRemit) innerList.push('系統匯款紀錄截圖');
+  if (hasCheck) innerList.push('支票影本');
+  const outerList = hasCheck ? ['支票影本'] : [];
+  renderAttachmentLists(innerList, outerList, 'nt-');
+}
+function renderAttachmentLists(innerList, outerList, idPrefix) {
   const renderList = (items, containerId) => {
     const c = document.getElementById(containerId);
     if (!c) return;
     c.innerHTML = '';
+    if (!items.length) {
+      c.innerHTML = '<div style="font-size:12px;color:var(--text-light);padding:5px 2px;">本件無對外附件</div>';
+      return;
+    }
     items.forEach(item => {
       const div = document.createElement('div');
       div.className = 'attach-item';
@@ -1835,8 +1866,8 @@ function renderAttach() {
       c.appendChild(div);
     });
   };
-  renderList(innerList, 'inner-attach-list');
-  renderList(outerList, 'outer-attach-list');
+  renderList(innerList, idPrefix + 'inner-attach-list');
+  renderList(outerList, idPrefix + 'outer-attach-list');
 }
 
 // ===== GENERATE DOC TABLE (for 文件輸出頁) =====
@@ -2902,6 +2933,7 @@ function ntMarkSubjectEdited() {
 }
 function ntRenderDoc() {
   updateNtPaymentDetailsHints();
+  renderNtAttach();
   const subj = document.getElementById('nt-subject');
   if (!ntSubjectEdited) subj.value = ntBuildSubject();
   document.getElementById('nt-doc-content').textContent = ntDocText();
