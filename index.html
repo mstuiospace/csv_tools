@@ -685,13 +685,9 @@ textarea { resize: vertical; min-height: 70px; }
       <div class="section">
         <div class="section-header"><span class="gold-dot"></span>給付方式</div>
         <div class="section-body">
-          <div class="alert-box alert-gold" style="margin-bottom:14px;">
-            <span>💡</span>
-            <div>每張保單只能選一種給付方式；外幣只能匯款，新臺幣可選匯款或支票。下方按鈕可快速批次設定，特殊案件再到各保單調整。若發生退匯，請依實際處理結果改選給付方式與日期；對內備註仍可手動修改。</div>
-          </div>
           <div class="toggle-group" style="margin-bottom:14px;">
-            <button class="toggle-btn active" id="btn-remit" onclick="setPayMethod('匯款')">🏦 全部匯款</button>
-            <button class="toggle-btn" id="btn-check" onclick="setPayMethod('支票')">📝 新臺幣改為支票</button>
+            <button class="toggle-btn active" id="btn-remit" onclick="setPayMethod('匯款')">🏦 匯款</button>
+            <button class="toggle-btn" id="btn-check" onclick="setPayMethod('支票')">📝 支票</button>
           </div>
 
           <div id="remit-fields" class="grid2">
@@ -735,27 +731,27 @@ textarea { resize: vertical; min-height: 70px; }
         <div class="section-header"><span class="gold-dot"></span>案件基本資訊</div>
         <div class="section-body grid2">
           <div class="full">
-            <label class="field-label">法院／署別</label>
-            <select id="courtType" onchange="updateNote3Preview()">
-              <option value="鈞院">鈞院（地方法院）</option>
-              <option value="鈞署">鈞署（行政執行署）</option>
-            </select>
-          </div>
-          <div>
-            <label class="field-label">命令日期</label>
-            <input type="text" id="courtDate" placeholder="11○年○月○日">
-          </div>
-          <div>
-            <label class="field-label">執行命令字號</label>
-            <input type="text" id="orderNum" placeholder="○○院○○字第○○號">
+            <label class="field-label">回函公文文號 <span style="font-size:10px;color:var(--text-light);">（共15碼，會自動帶入對內備註與信封）</span></label>
+            <input type="text" id="docNum" placeholder="共15碼" maxlength="15" oninput="syncDocNum()">
           </div>
           <div class="full">
             <label class="field-label">債務人姓名</label>
             <input type="text" id="debtor" placeholder="王大明" oninput="updateNote3Preview(); updateInternalNoteAuto();">
           </div>
           <div class="full">
-            <label class="field-label">公文文號 <span style="font-size:10px;color:var(--text-light);">（共15碼，會自動帶入對內備註與信封）</span></label>
-            <input type="text" id="docNum" placeholder="共15碼" maxlength="15" oninput="syncDocNum()">
+            <label class="field-label">來文法院／執行機關</label>
+            <select id="courtType" onchange="updateNote3Preview()">
+              <option value="鈞院">鈞院（地方法院）</option>
+              <option value="鈞署">鈞署（行政執行署）</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">執行命令日期</label>
+            <input type="text" id="courtDate" placeholder="11○年○月○日">
+          </div>
+          <div>
+            <label class="field-label">執行命令字號</label>
+            <input type="text" id="orderNum" placeholder="○○院○○字第○○號">
           </div>
         </div>
       </div>
@@ -765,6 +761,10 @@ textarea { resize: vertical; min-height: 70px; }
         <div class="section-header"><span class="gold-dot"></span>保單明細表</div>
         <div class="section-body">
           <div id="policies-container"></div>
+          <div id="mixed-currency-pay-hint" class="alert-box alert-gold hidden" style="margin-bottom:12px;">
+            <span>💡</span>
+            <div>本案包含多種幣別，外幣保單已自動設為匯款，請確認各保單的給付方式。如遇退匯，可依實際處理結果調整給付方式、日期及對內備註。</div>
+          </div>
           <button class="add-btn" onclick="addPolicy()">＋ 新增保單</button>
           <div class="total-bar">
             <span class="label">合計實領金額</span>
@@ -945,6 +945,10 @@ textarea { resize: vertical; min-height: 70px; }
             <button class="primary-btn" style="margin-bottom:0;" onclick="printEnvelope()">🖨️ 列印信封</button>
           </div>
 
+          <div id="sender-current-summary" class="alert-box alert-navy hidden" style="margin-top:14px;margin-bottom:0;">
+            <span>🏢</span><div id="sender-current-summary-text"></div>
+          </div>
+
           <details id="sender-settings" style="margin-top:14px;">
             <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--navy);">🏢 寄件人設定（設定一次即可，會記在本機）</summary>
             <div style="margin-top:10px;padding:12px;background:#f8f9fd;border-radius:8px;border:1px solid var(--border);">
@@ -1014,6 +1018,22 @@ textarea { resize: vertical; min-height: 70px; }
                 <span>顯示測試參考框（郵票／郵遞區號格線，僅供空白紙測試對齊用；套印公司信封時請取消勾選）</span>
               </label>
               <button class="secondary-btn" style="margin:10px 0 0;" onclick="resetEnvCalib()">↺ 恢復預設校正值</button>
+            </div>
+          </details>
+
+          <details style="margin-top:14px;">
+            <summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--navy);">💾 設定備份與還原</summary>
+            <div style="margin-top:10px;padding:12px;background:#f8f9fd;border-radius:8px;border:1px solid var(--border);">
+              <div class="alert-box alert-gold" style="margin-bottom:10px;">
+                <span>💡</span>
+                <div>設定會自動記在目前的瀏覽器。若清除瀏覽資料或更換電腦，設定可能消失，建議下載一份備份。備份只包含寄件人、信封校正及自行新增的常用收件人，不包含任何案件資料，也不會上傳。</div>
+              </div>
+              <div class="grid2">
+                <button class="secondary-btn" style="margin:0;" onclick="downloadSettingsBackup()">⬇️ 下載設定備份</button>
+                <button class="secondary-btn" style="margin:0;" onclick="chooseSettingsBackup()">⬆️ 從備份檔還原</button>
+              </div>
+              <input type="file" id="settings-backup-file" accept="application/json,.json" class="hidden" onchange="restoreSettingsBackup(this.files[0]);this.value=''">
+              <div id="settings-backup-status" style="font-size:12px;color:var(--text-mid);margin-top:10px;"></div>
             </div>
           </details>
         </div>
@@ -1323,7 +1343,7 @@ textarea { resize: vertical; min-height: 70px; }
       <div style="font-size:11.5px;color:var(--text-mid);line-height:1.8;">
         <div style="margin-bottom:8px;">
           <strong>v1.8</strong>　2026-08-22<br>
-          解約件第三點新增「保險契約依令終止後，於本公司已無有效保單」選項；公文自動列出實際手續費金額；多幣別金額分開計算與顯示；支援每張保單分別選擇匯款或支票
+          解約件支援多幣別與每張保單分別選擇匯款或支票；公文自動列出實際手續費；新增「無有效保單」第三點選項；可下載及還原寄件人、信封校正與自存常用收件人設定
         </div>
         <div style="margin-bottom:8px;">
           <strong>v1.7</strong>　2026-08-20<br>
@@ -1611,6 +1631,8 @@ function renderPolicies() {
     c.appendChild(div);
   });
   updateTotal();
+  const mixedCurrency = new Set(policies.map(p => p.currency)).size > 1;
+  document.getElementById('mixed-currency-pay-hint')?.classList.toggle('hidden', !mixedCurrency);
   syncPaySections();
 }
 function addPolicy() {
@@ -2062,10 +2084,12 @@ function getEnvCalib() {
 // 寫入失敗只影響「記住設定」，不該中斷使用者正在進行的輸入，故一律吞掉錯誤
 function saveEnvCalib() {
   try { localStorage.setItem('envCalibV4', JSON.stringify(getEnvCalib())); } catch(e) {}
+  markSettingsBackupOutdated();
 }
 function resetEnvCalib() {
   try { localStorage.removeItem('envCalibV4'); } catch(e) {}
   loadEnvCalib();
+  markSettingsBackupOutdated();
 }
 
 // ===== ENVELOPE RENDER（預覽與列印共用同一份版面，確保長相一致） =====
@@ -2324,6 +2348,7 @@ function getSenderSettings() {
 function saveSenderSettings() {
   try { localStorage.setItem('senderSettings', JSON.stringify(getSenderSettings())); } catch(e) {}
   updateSenderHint();
+  markSettingsBackupOutdated();
 }
 function loadSenderSettings() {
   let s = {};
@@ -2337,6 +2362,113 @@ function updateSenderHint() {
   const notSet = !s.unit && !s.addr && !s.tel;
   document.getElementById('sender-setup-hint')?.classList.toggle('hidden', !notSet);
   document.getElementById('nt-sender-hint')?.classList.toggle('hidden', !notSet);
+  const summary = document.getElementById('sender-current-summary');
+  const summaryText = document.getElementById('sender-current-summary-text');
+  if (summary && summaryText) {
+    summary.classList.toggle('hidden', notSet);
+    const parts = [s.unit, s.staff ? `${s.staff}專員` : '', s.ext ? `分機${s.ext}` : ''].filter(Boolean);
+    summaryText.textContent = `目前寄件人：${parts.join('／') || '已設定'}`;
+  }
+}
+
+// ===== 本機設定備份 =====
+// 備份只收寄件人、信封校正與使用者自存收件人，絕不收任何案件欄位。
+const SETTINGS_BACKUP_DIRTY_KEY = 'settingsBackupDirtyV1';
+function setSettingsBackupDirty(dirty) {
+  try { localStorage.setItem(SETTINGS_BACKUP_DIRTY_KEY, dirty ? '1' : '0'); } catch(e) {}
+  updateSettingsBackupStatus();
+}
+function markSettingsBackupOutdated() { setSettingsBackupDirty(true); }
+function updateSettingsBackupStatus() {
+  const el = document.getElementById('settings-backup-status');
+  if (!el) return;
+  let dirty = true;
+  try { dirty = localStorage.getItem(SETTINGS_BACKUP_DIRTY_KEY) !== '0'; } catch(e) {}
+  el.textContent = dirty
+    ? '目前設定尚未備份，或備份後又有更新。'
+    : '目前設定已下載備份。';
+  el.style.color = dirty ? '#9a5b00' : '#24733e';
+}
+function settingsBackupData() {
+  return {
+    tool: '法扣案件公文套版工具',
+    formatVersion: 1,
+    exportedAt: new Date().toISOString(),
+    sender: getSenderSettings(),
+    envelopeCalibration: getEnvCalib(),
+    customRecipients: loadCustomOrgs()
+  };
+}
+function downloadSettingsBackup() {
+  const blob = new Blob([JSON.stringify(settingsBackupData(), null, 2)], { type:'application/json;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const now = new Date();
+  const ymd = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+  a.href = url;
+  a.download = `法扣工具設定備份_${ymd}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  // 部分瀏覽器需要一點時間才會開始處理下載，不可立即收回網址。
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  setSettingsBackupDirty(false);
+}
+function chooseSettingsBackup() { document.getElementById('settings-backup-file')?.click(); }
+function cleanBackupSender(value) {
+  const source = value && typeof value === 'object' ? value : {};
+  const clean = {};
+  SENDER_FIELDS.forEach(k => { clean[k] = typeof source[k] === 'string' ? source[k].slice(0, 300) : ''; });
+  return clean;
+}
+function cleanBackupCalib(value) {
+  const source = value && typeof value === 'object' ? value : {};
+  const clean = Object.assign({}, ENV_CALIB_DEFAULT);
+  ['w','h','addrDx','addrDy','nameDx','nameDy','senderDx','senderDy'].forEach(k => {
+    const n = Number(source[k]);
+    if (Number.isFinite(n) && Math.abs(n) <= 1000) clean[k] = n;
+  });
+  clean.guides = source.guides === true;
+  return clean;
+}
+function cleanBackupRecipients(value) {
+  if (!Array.isArray(value)) return [];
+  return value.slice(0, 500).filter(o => o && typeof o === 'object').map(o => ({
+    name: typeof o.name === 'string' ? o.name.slice(0, 300) : '',
+    zip: typeof o.zip === 'string' ? o.zip.slice(0, 20) : '',
+    addr: typeof o.addr === 'string' ? o.addr.slice(0, 500) : ''
+  })).filter(o => o.name);
+}
+function restoreSettingsBackup(file) {
+  if (!file) return;
+  if (file.size > 1024 * 1024) { alert('備份檔過大，請確認是否選錯檔案。'); return; }
+  const reader = new FileReader();
+  reader.onerror = () => alert('無法讀取這個備份檔。');
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!data || data.tool !== '法扣案件公文套版工具' || data.formatVersion !== 1)
+        throw new Error('invalid format');
+      if (!confirm('還原後會取代目前的寄件人、信封校正及自存常用收件人，確定繼續嗎？')) return;
+      const sender = cleanBackupSender(data.sender);
+      const calib = cleanBackupCalib(data.envelopeCalibration);
+      const recipients = cleanBackupRecipients(data.customRecipients);
+      try {
+        localStorage.setItem('senderSettings', JSON.stringify(sender));
+        localStorage.setItem('envCalibV4', JSON.stringify(calib));
+        localStorage.setItem(ENV_ORGS_KEY, JSON.stringify(recipients));
+      } catch(e) { throw new Error('storage unavailable'); }
+      SENDER_FIELDS.forEach(k => { if (senderEl(k)) senderEl(k).value = sender[k]; });
+      loadEnvCalib();
+      updateSenderHint();
+      if (document.getElementById('nt-env-list')) ntRenderEnvelopes();
+      setSettingsBackupDirty(false);
+      alert('設定已還原完成。列印信封前，請先確認寄件人與套印位置。');
+    } catch(e) {
+      alert('這不是本工具可使用的設定備份檔，或檔案已損壞。');
+    }
+  };
+  reader.readAsText(file, 'utf-8');
 }
 
 // ===== 對內備註 自動產生 =====
@@ -2704,6 +2836,7 @@ function loadCustomOrgs() {
 }
 function saveCustomOrgs(list) {
   try { localStorage.setItem(ENV_ORGS_KEY, JSON.stringify(list)); } catch(e) {}
+  markSettingsBackupOutdated();
 }
 
 let ntEnvelopes = [{ name:'', title:'', zip:'', addr:'' }];
@@ -2918,6 +3051,7 @@ function clearCase() {
 renderPolicies();
 loadEnvCalib();
 loadSenderSettings();
+updateSettingsBackupStatus();
 prefillDates();
 syncDocNum();   // 讓信封的文號與填寫頁一致
 // 第三點預設選最常用的「依函揭命令說明○未予控管」。
