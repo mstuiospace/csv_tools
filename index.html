@@ -955,15 +955,12 @@ textarea { resize: vertical; min-height: 70px; }
           <select id="env-org-select" onchange="envApplyOrg(this.value);this.selectedIndex=0;" style="margin-bottom:12px;"></select>
           <div class="grid2">
             <div>
-              <label class="field-label">收件人姓名</label>
-              <input type="text" id="env-name" placeholder="楊○○">
+              <label class="field-label">收件人</label>
+              <input type="text" id="env-name" placeholder="楊○○／○○地方法院">
             </div>
             <div>
-              <label class="field-label">稱謂</label>
-              <div class="toggle-group">
-                <button class="toggle-btn active" id="btn-sir" onclick="setTitle('先生')">先生</button>
-                <button class="toggle-btn" id="btn-ms" onclick="setTitle('小姐')">小姐</button>
-              </div>
+              <label class="field-label">稱謂 <span style="font-size:10px;color:var(--text-light);">（可留空）</span></label>
+              <input type="text" id="env-title" placeholder="先生／小姐／啟">
             </div>
             <div>
               <label class="field-label">收件人郵遞區號</label>
@@ -1190,9 +1187,9 @@ textarea { resize: vertical; min-height: 70px; }
             <label class="field-label">類型選擇</label>
             <select id="nt-note2Type" onchange="ntUpdate()">
               <option value="none">（不加入第二點）</option>
-              <option value="close">敬請鈞院於本案執行命令撤銷後，另行副知本公司俾便結案</option>
-              <option value="nocontrol">本公司依函揭命令說明○未予控管前揭保險契約</option>
-              <option value="cancel">敬請鈞院准予撤銷本件扣押命令並副知本公司</option>
+              <option value="cancel">敬請鈞院准予撤銷本件扣押命令並副知本公司，實感德便。</option>
+              <option value="nocontrol">本公司依函揭命令說明○未予控管前揭保險契約，併予敘明。</option>
+              <option value="nocontrol-title">本公司依函揭命令主旨、說明○未予控管前揭保險契約，併予敘明。</option>
             </select>
           </div>
           <div id="nt-note2-num" class="hidden" style="margin-bottom:10px;">
@@ -1385,6 +1382,10 @@ textarea { resize: vertical; min-height: 70px; }
       <!-- 只留最近四筆，新增一筆就把最舊的那筆刪掉 -->
       <div style="font-size:11.5px;color:var(--text-mid);line-height:1.8;">
         <div style="margin-bottom:8px;">
+          <strong>v1.16</strong>　2026-09-02<br>
+          回執聯改用最新範本座標；非解約公文新增債務人識別斜線、金額千分位及第二點寫法；解約信封稱謂可留空
+        </div>
+        <div style="margin-bottom:8px;">
           <strong>v1.15</strong>　2026-08-23<br>
           非解約給付對象可選債權人或自行填寫法院、移送機關等名稱；日期提醒改為直接顯示在欄位下方
         </div>
@@ -1395,10 +1396,6 @@ textarea { resize: vertical; min-height: 70px; }
         <div style="margin-bottom:8px;">
           <strong>v1.13</strong>　2026-08-22<br>
           非解約金額改為「實際給付金額」；總額明確顯示已扣除或未扣除手續費，避免支票金額被誤認為還要再扣一次
-        </div>
-        <div style="margin-bottom:8px;">
-          <strong>v1.12</strong>　2026-08-22<br>
-          解約與非解約信封頁顯示同一套寄件人、信封版面校正及設定備份區塊，不必切換情境修改設定
         </div>
       </div>
     </div>
@@ -1432,8 +1429,8 @@ textarea { resize: vertical; min-height: 70px; }
 <script>
 // ===== VERSION / 版權資訊 =====
 // 本工具原創設計、開發：Miyabi。每次更新請同步修改這裡的版本號與日期。
-const APP_VERSION = 'v1.15';
-const APP_UPDATED = '2026-08-23';
+const APP_VERSION = 'v1.16';
+const APP_UPDATED = '2026-09-02';
 const APP_AUTHOR = 'Miyabi';
 console.log(`%c法扣案件公文套版工具 ${APP_VERSION}`, 'font-weight:bold;color:#c4973a;');
 console.log(`© 2026 ${APP_AUTHOR}．原創設計與開發．最後更新：${APP_UPDATED}`);
@@ -2145,14 +2142,6 @@ function copyDoc() {
   copyRichText(el.dataset.copyText || el.textContent, 'copy-btn', '📋 一鍵複製公文');
 }
 
-// ===== ENVELOPE TITLE =====
-let envTitle = '先生';
-function setTitle(t) {
-  envTitle = t;
-  document.getElementById('btn-sir').className = 'toggle-btn' + (t==='先生'?' active':'');
-  document.getElementById('btn-ms').className = 'toggle-btn' + (t==='小姐'?' active':'');
-}
-
 // ===== ENVELOPE CALIBRATION（套印對齊校正，存於 localStorage） =====
 // 【版型來源】座標全部取自範本 docx 用 Word 匯出的 PDF（王小玉_信封.pdf），
 // 也就是 Word 已經排版完成的最終結果，不是從 docx 錨點推導出來的。
@@ -2269,7 +2258,8 @@ function getEnvData() {
     docnum: document.getElementById('env-docnum').value || '',
     ordernum: document.getElementById('orderNum').value.trim(),
     sender,   // 寄件人資訊來自使用者設定，程式不內建任何機關資料
-    title: envTitle,
+    // 只去尾端空白；留空時適用於法院／移送機關
+    title: (document.getElementById('env-title')?.value || '').replace(/\s+$/, ''),
   };
 }
 // 寄件人各行的組法：欄位未填就整段略過，避免印出「　小姐」「電話」這種殘缺文字
@@ -2458,19 +2448,19 @@ function printEnvelopes(dataList) {
 function printEnvelope() { printEnvelopes([getEnvData()]); }
 
 // ===== PRINT RECEIPT（雙掛號回執聯套印，只印文字） =====
-// 【版型來源】回執聯(列印範本).pdf。紙張 176 x 250mm，欄位位置直接依 PDF 實測，
+// 【版型來源】回執聯-最新範本.pdf。紙張 176 x 250mm，欄位位置直接依 PDF 實測，
 // 不使用範本中的任何公司或個人資料。回執聯文號一律使用法院／執行機關的執行命令字號。
 const RECEIPT_PAPER = { w:176, h:250 };
 const RECEIPT_BASE = {
-  recipientZip:  { left:110.5, top:46.6, pt:14.0 },
-  recipientAddr: { left:104.8, top:53.4, pt:12.0 },
-  recipientName: { left: 98.5, top:53.4, pt:13.0 },
-  orderNum:      { left: 92.1, top:53.4, pt:12.0 },
-  senderZip:     { left: 82.6, top:69.9, pt:18.0 },
-  senderAddr:    { left: 70.1, top:77.0, pt:13.0 },
-  senderUnit:    { left: 63.7, top:77.0, pt:13.0 },
-  senderStaff:   { left: 57.4, top:77.0, pt:13.0 },
-  senderExt:     { left: 51.0, top:77.0, pt:13.0 },
+  recipientZip:  { left:110.96, top:44.88, pt:14.0 },
+  recipientAddr: { left:104.24, top:51.95, pt:12.0 },
+  recipientName: { left: 97.59, top:51.95, pt:13.0 },
+  orderNum:      { left: 91.81, top:52.63, pt:12.0 },
+  senderZip:     { left: 81.37, top:69.01, pt:18.0 },
+  senderAddr:    { left: 74.81, top:69.01, pt:13.0 },
+  senderUnit:    { left: 68.16, top:69.01, pt:13.0 },
+  senderStaff:   { left: 61.52, top:69.01, pt:13.0 },
+  senderExt:     { left: 54.95, top:78.93, pt:13.0 },
 };
 function buildReceiptHTML(data) {
   const B = RECEIPT_BASE;
@@ -2798,7 +2788,7 @@ function ntInit() {
   // 瀏覽器重新整理時會還原 <select> 上次的選擇，蓋掉 HTML 的 selected，
   // 故預設值改在此明確指定；只做一次，避免使用者改過後回首頁再進來又被重設。
   if (!ntDefaultsApplied) {
-    document.getElementById('nt-note2Type').value = 'close';
+    document.getElementById('nt-note2Type').value = 'cancel';
     document.getElementById('nt-note3Type').value = 'none';
     ntDefaultsApplied = true;
   }
@@ -2990,6 +2980,7 @@ function ntFeeText() {
 }
 function ntBuildSubject() {
   const debtor = ntVal('nt-debtor') || '○○○';
+  const debtorLabel = `債務人/${debtor}`;
   const types = ntTypeText();
   const fee = ntFeeText();
   const remit = ntCreditors.filter(c => c.pay === '匯款');
@@ -3001,7 +2992,7 @@ function ntBuildSubject() {
 
   // 全部為支票：沿用範本「隨函檢附…支票影本」的句型
   if (!remit.length && check.length) {
-    return `隨函檢附債務人${debtor}之${types}債權支票影本${sheets(check.length)}${fee}，請查照。`;
+    return `隨函檢附${debtorLabel}之${types}債權支票影本${sheets(check.length)}${fee}，請查照。`;
   }
   // 其餘（純匯款、或匯款與支票並存）：以「有關…」起首，兩種給付方式併陳
   const segs = [];
@@ -3015,24 +3006,29 @@ function ntBuildSubject() {
     const who = (names.length && names.length === check.length) ? `${names.join('、')}之` : '';
     segs.push(`隨函檢附${who}支票影本${sheets(check.length)}`);
   }
-  return `有關債務人${debtor}之${types}債權，${segs.join('，並')}${fee}，請查照。`;
+  return `有關${debtorLabel}之${types}債權，${segs.join('，並')}${fee}，請查照。`;
 }
 function ntBuildNotes() {
   const ct = ntVal('nt-courtType') || '鈞院';
   const debtor = ntVal('nt-debtor') || '○○○';
+  const debtorLabel = `債務人/${debtor}`;
   const lines = [`依${ct}${ntVal('nt-courtDate')||'○年○月○日'}${ntVal('nt-orderNum')||'○○字第○號'}執行命令辦理。`];
 
   const t2 = ntVal('nt-note2Type');
-  if (t2 === 'close')     lines.push(`敬請${ct}於本案執行命令撤銷後，另行副知本公司俾便結案。`);
   if (t2 === 'nocontrol') lines.push(`本公司依函揭命令說明${ntVal('nt-note2Num')||'○'}未予控管前揭保險契約，併予敘明。`);
+  if (t2 === 'nocontrol-title') lines.push(`本公司依函揭命令主旨、說明${ntVal('nt-note2Num')||'○'}未予控管前揭保險契約，併予敘明。`);
   if (t2 === 'cancel')    lines.push(`敬請${ct}准予撤銷本件扣押命令並副知本公司，實感德便。`);
 
   const t3 = ntVal('nt-note3Type');
   if (t3 === 'correction') {
     const ty = ntTypeText();
+    const amountText = id => {
+      const raw = ntVal(id);
+      return raw ? fmtNum(toNum(raw)) : '○○';
+    };
     lines.push(`本公司原於${ntVal('nt-corrDate')||'○年○月○日'}以${ntVal('nt-corrDocNum')||'○○字第○號'}函覆，`
-      + `債務人${debtor}有已得領取之${ty}新臺幣${ntVal('nt-corrOld')||'○○'}元（需另扣除手續費${NT_FEE}元），`
-      + `爰特此更正債務人${debtor}已得領取之${ty}為新臺幣${ntVal('nt-corrNew')||'○○'}元（已扣除手續費${NT_FEE}元）。`);
+      + `${debtorLabel}有已得領取之${ty}新臺幣${amountText('nt-corrOld')}元（需另扣除手續費${NT_FEE}元），`
+      + `爰特此更正${debtorLabel}已得領取之${ty}為新臺幣${amountText('nt-corrNew')}元（已扣除手續費${NT_FEE}元）。`);
   }
   if (t3 === 'custom') lines.push(ntVal('nt-note3Custom') || '（請填入內容）');
 
@@ -3080,8 +3076,8 @@ function ntBuildNote() {
   const dn = ntVal('nt-docNum');
   const reply = dn ? `函覆（${dn}）` : '函覆';
   const t2 = ntVal('nt-note2Type');
-  if (t2 === 'close')          parts.push(`${reply}於執行命令撤銷後另行副知俾便結案`);
-  else if (t2 === 'nocontrol') parts.push(`${reply}依函揭命令說明${ntVal('nt-note2Num')||'○'}未予控管`);
+  if (t2 === 'nocontrol') parts.push(`${reply}依函揭命令說明${ntVal('nt-note2Num')||'○'}未予控管`);
+  else if (t2 === 'nocontrol-title') parts.push(`${reply}依函揭命令主旨、說明${ntVal('nt-note2Num')||'○'}未予控管`);
   else if (t2 === 'cancel')    parts.push(`${reply}准予撤銷扣押命令並副知本公司`);
   else if (dn)                 parts.push(reply);
   if (ntVal('nt-note3Type') === 'correction') parts.push('並更正前次函覆金額');
@@ -3099,7 +3095,7 @@ function ntUpdate() {
   });
   // 第二點：僅「未予控管」需要填說明點次
   const t2 = ntVal('nt-note2Type');
-  document.getElementById('nt-note2-num').classList.toggle('hidden', t2 !== 'nocontrol');
+  document.getElementById('nt-note2-num').classList.toggle('hidden', !['nocontrol','nocontrol-title'].includes(t2));
   document.getElementById('nt-note2-preview').classList.toggle('hidden', t2 === 'none');
   if (t2 !== 'none') {
     document.getElementById('nt-note2-preview-text').textContent = ntBuildNotes()[1] || '';
@@ -3375,7 +3371,7 @@ function clearCase() {
     ntEnvelopes.length = 0;
     ntEnvelopes.push({ name:'', title:'', zip:'', addr:'' });
     // 清空後 select 已回到第一個選項，這裡再明確指定一次預設值
-    document.getElementById('nt-note2Type').value = 'close';
+    document.getElementById('nt-note2Type').value = 'cancel';
     document.getElementById('nt-note3Type').value = 'none';
     ntRenderEnvelopes();
     ntRenderTypes();
