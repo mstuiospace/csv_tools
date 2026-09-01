@@ -685,7 +685,7 @@ textarea { resize: vertical; min-height: 70px; }
     <div class="tabs">
       <button class="tab active" id="tab-form" onclick="switchTab('form')">✏️ 填寫</button>
       <button class="tab inactive" id="tab-preview" onclick="switchTab('preview')">📄 公文預覽</button>
-      <button class="tab inactive" id="tab-attach" onclick="switchTab('attach')">📁 文件輸出</button>
+      <button class="tab inactive" id="tab-attach" onclick="switchTab('attach')">📮 郵寄列印</button>
     </div>
 
     <!-- ===== FORM TAB ===== -->
@@ -926,19 +926,6 @@ textarea { resize: vertical; min-height: 70px; }
     <!-- ===== ATTACH TAB ===== -->
     <div id="page-attach" class="hidden">
 
-      <!-- 解約金明細表 -->
-      <div class="section">
-        <div class="section-header"><span class="gold-dot"></span>📊 解約金明細表</div>
-        <div class="section-body">
-          <div id="table-title-doc" style="font-weight:700;font-size:14px;margin-bottom:12px;text-align:center;color:var(--navy);"></div>
-          <div style="overflow-x:auto;">
-            <table class="detail-table" id="detail-table-doc"></table>
-          </div>
-          <div class="notes-text" id="detail-notes-doc"></div>
-          <button class="primary-btn" style="margin-top:14px;margin-bottom:0;" onclick="downloadDetailPDF()">⬇️ 下載明細表 PDF</button>
-        </div>
-      </div>
-
       <!-- 信封填寫 -->
       <div class="section">
         <div class="section-header"><span class="gold-dot"></span>✉️ 信封資訊</div>
@@ -1091,7 +1078,7 @@ textarea { resize: vertical; min-height: 70px; }
     <div class="tabs">
       <button class="tab active" id="nt-tab-form" onclick="ntSwitchTab('form')">✏️ 填寫</button>
       <button class="tab inactive" id="nt-tab-preview" onclick="ntSwitchTab('preview')">📄 公文預覽</button>
-      <button class="tab inactive" id="nt-tab-env" onclick="ntSwitchTab('env')">✉️ 信封</button>
+      <button class="tab inactive" id="nt-tab-env" onclick="ntSwitchTab('env')">📮 郵寄列印</button>
     </div>
 
     <!-- ===== 填寫 ===== -->
@@ -1382,6 +1369,10 @@ textarea { resize: vertical; min-height: 70px; }
       <!-- 只留最近四筆，新增一筆就把最舊的那筆刪掉 -->
       <div style="font-size:11.5px;color:var(--text-mid);line-height:1.8;">
         <div style="margin-bottom:8px;">
+          <strong>v1.17</strong>　2026-09-02<br>
+          解約與非解約分頁統一改為「郵寄列印」；移除重複明細表；非解約主旨金額自動加千分位
+        </div>
+        <div style="margin-bottom:8px;">
           <strong>v1.16</strong>　2026-09-02<br>
           回執聯改用最新範本座標；非解約公文新增債務人識別斜線、金額千分位及第二點寫法；解約信封稱謂可留空
         </div>
@@ -1392,10 +1383,6 @@ textarea { resize: vertical; min-height: 70px; }
         <div style="margin-bottom:8px;">
           <strong>v1.14</strong>　2026-08-22<br>
           非解約填寫順序調整為案件資料、給付項目、債權人與給付方式；選擇給付方式後，只顯示本案需要填寫的日期
-        </div>
-        <div style="margin-bottom:8px;">
-          <strong>v1.13</strong>　2026-08-22<br>
-          非解約金額改為「實際給付金額」；總額明確顯示已扣除或未扣除手續費，避免支票金額被誤認為還要再扣一次
         </div>
       </div>
     </div>
@@ -1429,7 +1416,7 @@ textarea { resize: vertical; min-height: 70px; }
 <script>
 // ===== VERSION / 版權資訊 =====
 // 本工具原創設計、開發：Miyabi。每次更新請同步修改這裡的版本號與日期。
-const APP_VERSION = 'v1.16';
+const APP_VERSION = 'v1.17';
 const APP_UPDATED = '2026-09-02';
 const APP_AUTHOR = 'Miyabi';
 console.log(`%c法扣案件公文套版工具 ${APP_VERSION}`, 'font-weight:bold;color:#c4973a;');
@@ -1483,7 +1470,10 @@ function switchTab(t) {
     document.getElementById('tab-'+name).className = 'tab ' + (name===t?'active':'inactive');
   });
   if (t === 'preview') { generatePreview(); renderAttach(); }
-  if (t === 'attach') { placeSharedEnvelopeSettings('termination'); generateDocTable(); renderAttach(); }
+  if (t === 'attach') {
+    placeSharedEnvelopeSettings('termination');
+    updateTerminationEnvelopePlaceholder();
+  }
 }
 
 // 寄件人、信封校正與備份是同一份實際設定區塊；依目前情境移到對應信封頁，
@@ -1892,56 +1882,9 @@ function renderAttachmentLists(innerList, outerList, idPrefix) {
   renderList(outerList, idPrefix + 'outer-attach-list');
 }
 
-// ===== GENERATE DOC TABLE (for 文件輸出頁) =====
-function generateDocTable() {
-  const debtor = document.getElementById('debtor').value || '○○';
-  const hasDistribution = document.getElementById('hasDistribution').checked;
-  const creditorAmt = document.getElementById('creditorAmount').value || '○';
-  const debtorRet = document.getElementById('debtorReturn').value || '○';
-  const hasMixed = new Set(policies.map(p=>p.currency)).size > 1;
-
-  document.getElementById('table-title-doc').textContent = debtor + '保險解約金明細表';
-
-  const colWidths = hasMixed ? [6,18,6,20,17,17,16] : [6,20,22,18,18,16];
-  let thead = '<colgroup>' + colWidths.map(w => `<col style="width:${w}%">`).join('') + '</colgroup>';
-  const sm = t => `<span style="font-size:0.82em;">${t}</span>`;
-  thead += `<tr><th>序號</th><th>險別<br>${sm('（保單號碼）')}</th>`;
-  if (hasMixed) thead += '<th>幣別</th>';
-  thead += `<th>解約金<br>${sm('（含紅利、未到期保費）')}</th><th>${sm('（扣）')}<br>保單借款本息</th><th>${sm('（扣）')}<br>墊繳保費本息</th><th>實領金額</th></tr>`;
-
-  let tbody = '';
-  policies.forEach((p, i) => {
-    const act = calcActual(p);
-    tbody += `<tr>
-      <td>${i+1}</td>
-      <td><span style="display:block;">${escapeHtml(p.name||'—')}</span><span style="display:block;">（${escapeHtml(p.number||'—')}）</span></td>
-      ${hasMixed?`<td>${p.currency}</td>`:''}
-      <td style="text-align:right">${escapeHtml(p.amount||'0')}</td>
-      <td style="text-align:right">${escapeHtml(p.loan||'0')}</td>
-      <td style="text-align:right">${escapeHtml(p.advance||'0')}</td>
-      <td style="text-align:right;font-weight:700">${fmtNum(act)}</td>
-    </tr>`;
-  });
-  const cs = hasMixed ? 4 : 3;
-  tbody += `<tr class="total-row"><td colspan="${cs}" style="text-align:center">合計金額</td><td colspan="3" style="text-align:right">${groupedTotalText()}</td></tr>`;
-  document.getElementById('detail-table-doc').innerHTML = thead + tbody;
-
-  const noteItems = [];
-  policies.forEach(p => {
-    if (p.fee && p.fee !== '0') {
-      noteItems.push(`保單號碼${p.number||'○○'}另扣除手續費${p.currency === '新臺幣' ? '' : p.currency}${p.fee}元。`);
-    }
-  });
-  if (hasDistribution) {
-    noteItems.push(`解約金金額${creditorAmt}元給付債權人，餘額${debtorRet}元返還債務人。`);
-  }
-  // 只有一則註記時不編號，避免「註1」看起來像漏寫了後續項目
-  const notes = noteItems.length === 1
-    ? `註：${escapeHtml(noteItems[0])}`
-    : noteItems.map((t, i) => `註${i+1}：${escapeHtml(t)}`).join('<br>');
-  document.getElementById('detail-notes-doc').innerHTML = notes;
-
-  // 債務人即信封收件人：未自行填寫時，以債務人姓名提示（實際列印也會沿用，見 getEnvData）
+// 債務人即解約信封收件人：未自行填寫時，以債務人姓名提示。
+// 實際列印也會沿用債務人姓名（見 getEnvData）。
+function updateTerminationEnvelopePlaceholder() {
   const envName = document.getElementById('env-name');
   const debtorVal = document.getElementById('debtor').value.trim();
   if (envName && !envName.value) envName.placeholder = debtorVal || '楊○○';
@@ -2985,7 +2928,11 @@ function ntBuildSubject() {
   const fee = ntFeeText();
   const remit = ntCreditors.filter(c => c.pay === '匯款');
   const check = ntCreditors.filter(c => c.pay === '支票');
-  const amounts = l => l.map(c => c.amount.trim()).filter(Boolean).join('、') || '○○';
+  // 使用者可直接輸入純數字，公文中的每一筆金額都自動加上千分位。
+  const amounts = list => {
+    const values = list.map(c => c.amount.trim()).filter(Boolean).map(v => fmtNum(toNum(v)));
+    return values.join('、') || '○○';
+  };
 
   // 張數：單張依公文慣例寫「乙紙」，多張才用數字
   const sheets = n => (n === 1 ? '乙' : toZhNum(n)) + '紙';
