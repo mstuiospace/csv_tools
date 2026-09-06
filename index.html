@@ -951,6 +951,7 @@ textarea { resize: vertical; min-height: 70px; }
             </div>
             <div class="full">
               <label class="field-label">稱謂</label>
+              <div style="font-size:11px;color:var(--text-light);margin:-1px 0 7px;">收件人超過 4 字時，稱謂會自動換到左側；可用－／＋調整高低。</div>
               <div class="title-choice-group">
                 <button class="toggle-btn" id="env-title-mr" onclick="setEnvTitleMode('mr')">先生</button>
                 <button class="toggle-btn" id="env-title-ms" onclick="setEnvTitleMode('ms')">小姐</button>
@@ -1320,7 +1321,7 @@ textarea { resize: vertical; min-height: 70px; }
 
           <div class="alert-box alert-gold" style="margin-bottom:14px;">
             <span>💡</span>
-            <div>每位收件人各印一張；需要調整稱謂位置時，可用「－／＋」設定往下移幾個字。</div>
+            <div>會依收件人張數一次輸出，每位收件人各印一張。</div>
           </div>
 
           <div id="nt-env-list"></div>
@@ -1388,6 +1389,10 @@ textarea { resize: vertical; min-height: 70px; }
       <!-- 只留最近四筆，新增一筆就把最舊的那筆刪掉 -->
       <div style="font-size:11.5px;color:var(--text-mid);line-height:1.8;">
         <div style="margin-bottom:8px;">
+          <strong>v1.21</strong>　2026-09-07<br>
+          稱謂欄補上換行位置說明，讓操作結果更容易理解
+        </div>
+        <div style="margin-bottom:8px;">
           <strong>v1.20</strong>　2026-09-07<br>
           解約與非解約信封統一公文字號位置；稱謂改為按鈕選擇並可調整位置
         </div>
@@ -1398,10 +1403,6 @@ textarea { resize: vertical; min-height: 70px; }
         <div style="margin-bottom:8px;">
           <strong>v1.18</strong>　2026-09-07<br>
           信封校正改用實際列印確認值作為預設；移除測試參考框
-        </div>
-        <div style="margin-bottom:8px;">
-          <strong>v1.17</strong>　2026-09-02<br>
-          解約與非解約分頁統一改為「郵寄列印」；移除重複明細表；非解約主旨金額自動加千分位
         </div>
       </div>
     </div>
@@ -1435,7 +1436,7 @@ textarea { resize: vertical; min-height: 70px; }
 <script>
 // ===== VERSION / 版權資訊 =====
 // 本工具原創設計、開發：Miyabi。每次更新請同步修改這裡的版本號與日期。
-const APP_VERSION = 'v1.20';
+const APP_VERSION = 'v1.21';
 const APP_UPDATED = '2026-09-07';
 const APP_AUTHOR = 'Miyabi';
 console.log(`%c法扣案件公文套版工具 ${APP_VERSION}`, 'font-weight:bold;color:#c4973a;');
@@ -3276,6 +3277,7 @@ function ntRenderEnvelopes() {
         </div>
         <div class="full">
           <label class="field-label">稱謂</label>
+          <div style="font-size:11px;color:var(--text-light);margin:-1px 0 7px;">收件人超過 4 字時，稱謂會自動換到左側；可用－／＋調整高低。</div>
           <div class="title-choice-group">
             <button class="toggle-btn${e.titleMode==='mr'?' active':''}" onclick="ntSetEnvelopeTitleMode(${i},'mr')">先生</button>
             <button class="toggle-btn${e.titleMode==='ms'?' active':''}" onclick="ntSetEnvelopeTitleMode(${i},'ms')">小姐</button>
