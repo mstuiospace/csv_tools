@@ -736,6 +736,16 @@ textarea { resize: vertical; min-height: 70px; }
               <label class="field-label">自填逕送對象</label>
               <input type="text" id="customTarget" placeholder="請填入逕送對象" oninput="updatePaymentDetailsHints()">
             </div>
+            <div class="grid2" style="margin-top:10px;">
+              <div>
+                <label class="field-label">收支票日期</label>
+                <input type="text" id="checkReceiveDate" placeholder="11○年○月○日" oninput="updateInternalNoteAuto()">
+              </div>
+              <div>
+                <label class="field-label">寄出支票日期</label>
+                <input type="text" id="checkSendDate" placeholder="11○年○月○日" oninput="updateInternalNoteAuto()">
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1182,6 +1192,16 @@ textarea { resize: vertical; min-height: 70px; }
               <div id="nt-check-date-hint" class="hidden" style="font-size:11px;color:#c0392b;margin-top:5px;">請補上實際開票日期。</div>
             </div>
           </div>
+          <div class="grid2 hidden" id="nt-check-tracking-fields" style="margin-top:10px;">
+            <div>
+              <label class="field-label">收支票日期</label>
+              <input type="text" id="nt-checkReceiveDate" placeholder="11○年○月○日" oninput="ntUpdate()">
+            </div>
+            <div>
+              <label class="field-label">寄出支票日期</label>
+              <input type="text" id="nt-checkSendDate" placeholder="11○年○月○日" oninput="ntUpdate()">
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1389,6 +1409,10 @@ textarea { resize: vertical; min-height: 70px; }
       <!-- 只留最近四筆，新增一筆就把最舊的那筆刪掉 -->
       <div style="font-size:11.5px;color:var(--text-mid);line-height:1.8;">
         <div style="margin-bottom:8px;">
+          <strong>v1.22</strong>　2026-09-07<br>
+          解約與非解約新增收支票、寄出支票日期；對內備註日期統一使用斜線格式
+        </div>
+        <div style="margin-bottom:8px;">
           <strong>v1.21</strong>　2026-09-07<br>
           稱謂欄補上換行位置說明，讓操作結果更容易理解
         </div>
@@ -1399,10 +1423,6 @@ textarea { resize: vertical; min-height: 70px; }
         <div style="margin-bottom:8px;">
           <strong>v1.19</strong>　2026-09-07<br>
           信封的郵遞區號與地址改為可分開校正
-        </div>
-        <div style="margin-bottom:8px;">
-          <strong>v1.18</strong>　2026-09-07<br>
-          信封校正改用實際列印確認值作為預設；移除測試參考框
         </div>
       </div>
     </div>
@@ -1436,7 +1456,7 @@ textarea { resize: vertical; min-height: 70px; }
 <script>
 // ===== VERSION / 版權資訊 =====
 // 本工具原創設計、開發：Miyabi。每次更新請同步修改這裡的版本號與日期。
-const APP_VERSION = 'v1.21';
+const APP_VERSION = 'v1.22';
 const APP_UPDATED = '2026-09-07';
 const APP_AUTHOR = 'Miyabi';
 console.log(`%c法扣案件公文套版工具 ${APP_VERSION}`, 'font-weight:bold;color:#c4973a;');
@@ -2508,7 +2528,7 @@ function prefillDates() {
   const minguoYear = now.getFullYear() - 1911;
   const month = now.getMonth() + 1;
   const prefix = `${minguoYear}年${month}月日`;
-  ['remitDate', 'checkDate', 'courtDate'].forEach(id => {
+  ['remitDate', 'checkDate', 'checkReceiveDate', 'checkSendDate', 'courtDate'].forEach(id => {
     const el = document.getElementById(id);
     if (el && !el.value) el.value = prefix;
   });
@@ -2688,6 +2708,13 @@ function previousWorkday(date) {
 function fmtMinguoSlash(date) {
   return `${date.getFullYear() - 1911}/${date.getMonth() + 1}/${date.getDate()}`;
 }
+// 對內備註一律使用斜線日期；只預帶年月、尚未填日時顯示「115/9/○」。
+function fmtInternalDate(value) {
+  const parsed = parseMinguoDate(value);
+  if (parsed) return fmtMinguoSlash(parsed);
+  const partial = String(value || '').match(/(\d+)[年\/](\d+)月?/);
+  return partial ? `${partial[1]}/${partial[2]}/○` : '○/○/○';
+}
 
 function buildAutoInternalNote() {
   const hasRemit = hasPayMethod('匯款');
@@ -2701,21 +2728,22 @@ function buildAutoInternalNote() {
     groups.push({
       order: terminationDate ? terminationDate.getTime() : Number.MAX_SAFE_INTEGER,
       lines: [
-        `${terminationDate ? fmtMinguoSlash(terminationDate) : '○年○月○日'}${hasCheck ? ' 匯款保單解約' : ' 解約'}`,
-        remitParsed ? `${fmtMinguoSlash(remitParsed)} 匯款` : '○年○月○日 匯款'
+        `${terminationDate ? fmtMinguoSlash(terminationDate) : '○/○/○'}${hasCheck ? ' 匯款保單解約' : ' 解約'}`,
+        `${fmtInternalDate(document.getElementById('remitDate').value)} 匯款`
       ]
     });
   }
   if (hasCheck) {
     const terminationDate = checkParsed ? previousWorkday(checkParsed) : null;
-    // 收支票日／寄出支票日無法從開票日推算（屬獨立資訊），但年月比照日期欄位預填，只留「日」給使用者補
-    const now = new Date();
+    const receiveValue = document.getElementById('checkReceiveDate').value;
+    const sendValue = document.getElementById('checkSendDate').value;
     groups.push({
       order: terminationDate ? terminationDate.getTime() : Number.MAX_SAFE_INTEGER,
       lines: [
-        `${terminationDate ? fmtMinguoSlash(terminationDate) : '○年○月○日'}${hasRemit ? ' 支票保單解約' : ' 解約'}`,
-        checkParsed ? `${fmtMinguoSlash(checkParsed)} 開票` : '○年○月○日 開票',
-        `收支票日／寄出支票日：${now.getFullYear()-1911}年${now.getMonth()+1}月日`
+        `${terminationDate ? fmtMinguoSlash(terminationDate) : '○/○/○'}${hasRemit ? ' 支票保單解約' : ' 解約'}`,
+        `${fmtInternalDate(document.getElementById('checkDate').value)} 開票`,
+        `${fmtInternalDate(receiveValue)} 收支票`,
+        `${fmtInternalDate(sendValue)} 寄出支票`
       ]
     });
   }
@@ -2802,7 +2830,7 @@ function ntInit() {
 function ntPrefillDate() {
   const now = new Date();
   const prefix = `${now.getFullYear()-1911}年${now.getMonth()+1}月日`;
-  ['nt-remitDate','nt-checkDate','nt-courtDate'].forEach(id => {
+  ['nt-remitDate','nt-checkDate','nt-checkReceiveDate','nt-checkSendDate','nt-courtDate'].forEach(id => {
     const el = document.getElementById(id);
     if (el && !el.value) el.value = prefix;
   });
@@ -2921,9 +2949,11 @@ function ntUpdatePaymentDateVisibility() {
   const section = document.getElementById('nt-payment-date-section');
   const remitField = document.getElementById('nt-remit-date-field');
   const checkField = document.getElementById('nt-check-date-field');
+  const checkTracking = document.getElementById('nt-check-tracking-fields');
   section?.classList.toggle('hidden', !hasRemit && !hasCheck);
   if (remitField) remitField.className = hasRemit ? (hasCheck ? '' : 'full') : 'hidden';
   if (checkField) checkField.className = hasCheck ? (hasRemit ? '' : 'full') : 'hidden';
+  checkTracking?.classList.toggle('hidden', !hasCheck);
   document.getElementById('nt-remit-date-hint')?.classList.toggle('hidden', !hasRemit || !!parseMinguoDate(ntVal('nt-remitDate')));
   document.getElementById('nt-check-date-hint')?.classList.toggle('hidden', !hasCheck || !!parseMinguoDate(ntVal('nt-checkDate')));
 }
@@ -3074,10 +3104,14 @@ function ntBuildNote() {
   const opBase = payDates.length ? new Date(Math.min(...payDates.map(d => d.getTime()))) : null;
   parts.push(opBase
     ? `${fmtMinguoSlash(previousWorkday(opBase))}${ntTypeText()}給付作業日`
-    : `○年○月○日${ntTypeText()}給付作業日`);
+    : `○/○/○${ntTypeText()}給付作業日`);
 
-  if (hasRemit) parts.push(remitDate ? `${fmtMinguoSlash(remitDate)} 匯款` : '○年○月○日 匯款');
-  if (hasCheck) parts.push(checkDate ? `${fmtMinguoSlash(checkDate)} 開票` : '○年○月○日 開票');
+  if (hasRemit) parts.push(`${fmtInternalDate(ntVal('nt-remitDate'))} 匯款`);
+  if (hasCheck) {
+    parts.push(`${fmtInternalDate(ntVal('nt-checkDate'))} 開票`);
+    parts.push(`${fmtInternalDate(ntVal('nt-checkReceiveDate'))} 收支票`);
+    parts.push(`${fmtInternalDate(ntVal('nt-checkSendDate'))} 寄出支票`);
+  }
   const dn = ntVal('nt-docNum');
   const reply = dn ? `函覆（${dn}）` : '函覆';
   const t2 = ntVal('nt-note2Type');
