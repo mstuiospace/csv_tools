@@ -1344,11 +1344,9 @@ textarea { resize: vertical; min-height: 70px; }
             <div>會依收件人張數一次輸出，每位收件人各印一張。</div>
           </div>
 
+          <button class="add-btn hidden" id="nt-env-fill-btn" onclick="ntFillFromCreditors()" style="margin-bottom:14px;"></button>
           <div id="nt-env-list"></div>
-          <div style="display:flex;gap:8px;">
-            <button class="add-btn" onclick="ntAddEnvelope()" style="flex:1;">＋ 新增收件人</button>
-            <button class="add-btn hidden" id="nt-env-fill-btn" onclick="ntFillFromCreditors()" style="flex:1;"></button>
-          </div>
+          <button class="add-btn" onclick="ntAddEnvelope()">＋ 新增收件人</button>
 
           <div style="margin-top:14px;">
             <label class="field-label">公文字號 <span style="font-size:10px;color:var(--text-light);">（自動帶入填寫頁的文號，可在此另行修改）</span></label>
@@ -1409,6 +1407,10 @@ textarea { resize: vertical; min-height: 70px; }
       <!-- 只留最近四筆，新增一筆就把最舊的那筆刪掉 -->
       <div style="font-size:11.5px;color:var(--text-mid);line-height:1.8;">
         <div style="margin-bottom:8px;">
+          <strong>v1.23</strong>　2026-09-07<br>
+          非解約郵寄列印將「帶入領支票的債權人」移到收件資料上方
+        </div>
+        <div style="margin-bottom:8px;">
           <strong>v1.22</strong>　2026-09-07<br>
           解約與非解約新增收支票、寄出支票日期；對內備註日期統一使用斜線格式
         </div>
@@ -1419,10 +1421,6 @@ textarea { resize: vertical; min-height: 70px; }
         <div style="margin-bottom:8px;">
           <strong>v1.20</strong>　2026-09-07<br>
           解約與非解約信封統一公文字號位置；稱謂改為按鈕選擇並可調整位置
-        </div>
-        <div style="margin-bottom:8px;">
-          <strong>v1.19</strong>　2026-09-07<br>
-          信封的郵遞區號與地址改為可分開校正
         </div>
       </div>
     </div>
@@ -1456,7 +1454,7 @@ textarea { resize: vertical; min-height: 70px; }
 <script>
 // ===== VERSION / 版權資訊 =====
 // 本工具原創設計、開發：Miyabi。每次更新請同步修改這裡的版本號與日期。
-const APP_VERSION = 'v1.22';
+const APP_VERSION = 'v1.23';
 const APP_UPDATED = '2026-09-07';
 const APP_AUTHOR = 'Miyabi';
 console.log(`%c法扣案件公文套版工具 ${APP_VERSION}`, 'font-weight:bold;color:#c4973a;');
