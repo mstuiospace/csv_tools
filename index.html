@@ -312,6 +312,10 @@ textarea { resize: vertical; min-height: 70px; }
   box-shadow: 0 2px 8px rgba(30,45,90,0.25);
 }
 .toggle-btn:not(.active):hover { border-color: var(--navy-light); color: var(--navy); }
+.title-choice-group { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+.title-shift-row { display:flex; align-items:center; gap:8px; margin-top:8px; font-size:12px; color:var(--text-mid); }
+.title-shift-row .mini-btn { min-width:38px; font-size:16px; line-height:1; }
+@media(max-width:600px) { .title-choice-group { grid-template-columns:1fr 1fr; } }
 
 /* Currency */
 .cur-group { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -941,13 +945,26 @@ textarea { resize: vertical; min-height: 70px; }
           </div>
           <select id="env-org-select" onchange="envApplyOrg(this.value);this.selectedIndex=0;" style="margin-bottom:12px;"></select>
           <div class="grid2">
-            <div>
+            <div class="full">
               <label class="field-label">收件人</label>
               <input type="text" id="env-name" placeholder="楊○○／○○地方法院">
             </div>
-            <div>
-              <label class="field-label">稱謂 <span style="font-size:10px;color:var(--text-light);">（可留空）</span></label>
-              <input type="text" id="env-title" placeholder="先生／小姐／啟">
+            <div class="full">
+              <label class="field-label">稱謂</label>
+              <div class="title-choice-group">
+                <button class="toggle-btn" id="env-title-mr" onclick="setEnvTitleMode('mr')">先生</button>
+                <button class="toggle-btn" id="env-title-ms" onclick="setEnvTitleMode('ms')">小姐</button>
+                <button class="toggle-btn active" id="env-title-none" onclick="setEnvTitleMode('none')">不加稱謂</button>
+                <button class="toggle-btn" id="env-title-custom-btn" onclick="setEnvTitleMode('custom')">自行填寫</button>
+              </div>
+              <input type="hidden" id="env-title" value="">
+              <input type="text" id="env-title-custom" class="hidden" placeholder="請輸入稱謂，例如：啟" oninput="updateEnvTitleCustom(this.value)" style="margin-top:8px;">
+              <div class="title-shift-row hidden" id="env-title-shift-row">
+                <span>稱謂往下移</span>
+                <button class="mini-btn" onclick="shiftEnvTitle(-1)" aria-label="稱謂往上移一字">－</button>
+                <strong id="env-title-shift-value">0 字</strong>
+                <button class="mini-btn" onclick="shiftEnvTitle(1)" aria-label="稱謂往下移一字">＋</button>
+              </div>
             </div>
             <div>
               <label class="field-label">收件人郵遞區號</label>
@@ -1301,10 +1318,28 @@ textarea { resize: vertical; min-height: 70px; }
             <div>尚未設定寄件人資訊，信封與回執聯的寄件人欄位會是空白。請在本頁下方展開「寄件人設定」填寫，只需設定一次。</div>
           </div>
 
+          <div class="alert-box alert-gold" style="margin-bottom:14px;">
+            <span>💡</span>
+            <div>每位收件人各印一張；需要調整稱謂位置時，可用「－／＋」設定往下移幾個字。</div>
+          </div>
+
           <div id="nt-env-list"></div>
           <div style="display:flex;gap:8px;">
             <button class="add-btn" onclick="ntAddEnvelope()" style="flex:1;">＋ 新增收件人</button>
             <button class="add-btn hidden" id="nt-env-fill-btn" onclick="ntFillFromCreditors()" style="flex:1;"></button>
+          </div>
+
+          <div style="margin-top:14px;">
+            <label class="field-label">公文字號 <span style="font-size:10px;color:var(--text-light);">（自動帶入填寫頁的文號，可在此另行修改）</span></label>
+            <input type="text" id="nt-env-docnum" placeholder="共15碼" maxlength="15" oninput="ntMarkEnvDocNumEdited()">
+          </div>
+
+          <div style="margin-top:14px;">
+            <div class="grid2">
+              <button class="primary-btn" style="margin-bottom:0;" onclick="ntPrintEnvelopes()" id="nt-env-print-btn">🖨️ 列印信封</button>
+              <button class="secondary-btn" style="margin-bottom:0;" onclick="ntPrintReceipts()" id="nt-receipt-print-btn">📮 列印回執聯</button>
+            </div>
+            <div style="font-size:12px;color:var(--text-mid);margin-top:7px;">回執聯使用「執行命令字號」，不是回函公文文號。第一次列印請先用空白紙測試，列印比例選擇 100％。</div>
           </div>
 
           <details style="margin-top:14px;">
@@ -1318,23 +1353,6 @@ textarea { resize: vertical; min-height: 70px; }
             </div>
           </details>
           <div id="nt-shared-envelope-settings-mount"></div>
-
-          <div style="margin-top:14px;">
-            <label class="field-label">公文字號 <span style="font-size:10px;color:var(--text-light);">（自動帶入填寫頁的文號，可在此另行修改）</span></label>
-            <input type="text" id="nt-env-docnum" placeholder="共15碼" maxlength="15" oninput="ntMarkEnvDocNumEdited()">
-          </div>
-
-          <div class="alert-box alert-gold" style="margin-top:14px;">
-            <span>💡</span>
-            <div>會依收件人張數一次輸出，每張各自成頁。收件人超過 4 字時，稱謂會自成一行排在左邊；<strong>在稱謂前面加空格可讓它往下移，一格＝一個字</strong>。若需微調列印位置，可直接使用本頁下方的「信封版面校正」。</div>
-          </div>
-          <div style="margin-top:14px;">
-            <div class="grid2">
-              <button class="primary-btn" style="margin-bottom:0;" onclick="ntPrintEnvelopes()" id="nt-env-print-btn">🖨️ 列印信封</button>
-              <button class="secondary-btn" style="margin-bottom:0;" onclick="ntPrintReceipts()" id="nt-receipt-print-btn">📮 列印回執聯</button>
-            </div>
-            <div style="font-size:12px;color:var(--text-mid);margin-top:7px;">每位收件人各印一張；回執聯使用「執行命令字號」，不是回函公文文號。第一次列印請先用空白紙測試，列印比例選擇 100％。</div>
-          </div>
         </div>
       </div>
       <button class="secondary-btn" onclick="ntSwitchTab('form')">← 返回編輯</button>
@@ -1370,6 +1388,10 @@ textarea { resize: vertical; min-height: 70px; }
       <!-- 只留最近四筆，新增一筆就把最舊的那筆刪掉 -->
       <div style="font-size:11.5px;color:var(--text-mid);line-height:1.8;">
         <div style="margin-bottom:8px;">
+          <strong>v1.20</strong>　2026-09-07<br>
+          解約與非解約信封統一公文字號位置；稱謂改為按鈕選擇並可調整位置
+        </div>
+        <div style="margin-bottom:8px;">
           <strong>v1.19</strong>　2026-09-07<br>
           信封的郵遞區號與地址改為可分開校正
         </div>
@@ -1380,10 +1402,6 @@ textarea { resize: vertical; min-height: 70px; }
         <div style="margin-bottom:8px;">
           <strong>v1.17</strong>　2026-09-02<br>
           解約與非解約分頁統一改為「郵寄列印」；移除重複明細表；非解約主旨金額自動加千分位
-        </div>
-        <div style="margin-bottom:8px;">
-          <strong>v1.16</strong>　2026-09-02<br>
-          回執聯改用最新範本座標；非解約公文新增債務人識別斜線、金額千分位及第二點寫法；解約信封稱謂可留空
         </div>
       </div>
     </div>
@@ -1417,7 +1435,7 @@ textarea { resize: vertical; min-height: 70px; }
 <script>
 // ===== VERSION / 版權資訊 =====
 // 本工具原創設計、開發：Miyabi。每次更新請同步修改這裡的版本號與日期。
-const APP_VERSION = 'v1.19';
+const APP_VERSION = 'v1.20';
 const APP_UPDATED = '2026-09-07';
 const APP_AUTHOR = 'Miyabi';
 console.log(`%c法扣案件公文套版工具 ${APP_VERSION}`, 'font-weight:bold;color:#c4973a;');
@@ -2200,6 +2218,46 @@ function rotateNums(s, sidewaysFont) {
     return `<span style="text-orientation:sideways;font-family:${font};">${m}</span>`;
   });
 }
+let envTitleMode = 'none';
+let envTitleCustom = '';
+let envTitleShift = 0;
+function composeEnvelopeTitle(mode, custom, shift) {
+  const text = mode === 'mr' ? '先生' : mode === 'ms' ? '小姐' : mode === 'custom' ? custom.trim() : '';
+  return text ? '　'.repeat(Math.max(0, Math.min(10, shift))) + text : '';
+}
+function renderEnvTitleControls() {
+  ['mr','ms','none','custom'].forEach(mode => {
+    const id = mode === 'custom' ? 'env-title-custom-btn' : `env-title-${mode}`;
+    document.getElementById(id)?.classList.toggle('active', envTitleMode === mode);
+  });
+  document.getElementById('env-title-custom')?.classList.toggle('hidden', envTitleMode !== 'custom');
+  document.getElementById('env-title-shift-row')?.classList.toggle('hidden', envTitleMode === 'none');
+  const value = document.getElementById('env-title-shift-value');
+  if (value) value.textContent = `${envTitleShift} 字`;
+  const hidden = document.getElementById('env-title');
+  if (hidden) hidden.value = composeEnvelopeTitle(envTitleMode, envTitleCustom, envTitleShift);
+}
+function setEnvTitleMode(mode) {
+  envTitleMode = mode;
+  renderEnvTitleControls();
+  if (mode === 'custom') document.getElementById('env-title-custom')?.focus();
+}
+function updateEnvTitleCustom(value) {
+  envTitleCustom = value;
+  const hidden = document.getElementById('env-title');
+  if (hidden) hidden.value = composeEnvelopeTitle(envTitleMode, envTitleCustom, envTitleShift);
+}
+function shiftEnvTitle(delta) {
+  envTitleShift = Math.max(0, Math.min(10, envTitleShift + delta));
+  renderEnvTitleControls();
+}
+function resetEnvTitleControls() {
+  envTitleMode = 'none'; envTitleCustom = ''; envTitleShift = 0;
+  const custom = document.getElementById('env-title-custom');
+  if (custom) custom.value = '';
+  renderEnvTitleControls();
+}
+
 function getEnvData() {
   const sender = getSenderSettings();
   return {
@@ -3147,9 +3205,36 @@ function renderEnvOrgManager() {
   if (box) box.innerHTML = orgManagerHtml(loadCustomOrgs());
 }
 
-let ntEnvelopes = [{ name:'', title:'', zip:'', addr:'' }];
+let ntEnvelopes = [{ name:'', titleMode:'none', customTitle:'', titleShift:0, zip:'', addr:'' }];
 let ntEnvDocNumEdited = false;
 function ntMarkEnvDocNumEdited() { ntEnvDocNumEdited = true; }
+function ntEnsureEnvelopeTitleState(e) {
+  if (e.titleMode) return;
+  const legacy = String(e.title || '');
+  const lead = (legacy.match(/^[ 　]+/) || [''])[0].length;
+  const text = legacy.replace(/^[ 　]+/, '').trim();
+  e.titleShift = lead;
+  if (text === '先生') e.titleMode = 'mr';
+  else if (text === '小姐') e.titleMode = 'ms';
+  else if (!text) e.titleMode = 'none';
+  else { e.titleMode = 'custom'; e.customTitle = text; }
+}
+function ntEnvelopeTitle(e) {
+  ntEnsureEnvelopeTitleState(e);
+  return composeEnvelopeTitle(e.titleMode, e.customTitle || '', e.titleShift || 0);
+}
+function ntSetEnvelopeTitleMode(i, mode) {
+  ntEnsureEnvelopeTitleState(ntEnvelopes[i]);
+  ntEnvelopes[i].titleMode = mode;
+  ntRenderEnvelopes();
+  if (mode === 'custom') document.getElementById(`nt-env-custom-title-${i}`)?.focus();
+}
+function ntSetEnvelopeCustomTitle(i, value) { ntEnvelopes[i].customTitle = value; }
+function ntShiftEnvelopeTitle(i, delta) {
+  ntEnsureEnvelopeTitleState(ntEnvelopes[i]);
+  ntEnvelopes[i].titleShift = Math.max(0, Math.min(10, (ntEnvelopes[i].titleShift || 0) + delta));
+  ntRenderEnvelopes();
+}
 
 // 領支票的債權人姓名帶進收件人清單。
 // 原本這是「寄送對象」切換的副作用，但那個切換不影響任何輸出，只是逼使用者做一個
@@ -3162,11 +3247,13 @@ function ntFillFromCreditors() {
   if (!names.length) return;
   const hasData = ntEnvelopes.some(e => e.name || e.zip || e.addr);
   if (hasData && !confirm(`目前已填的收件人會被取代為 ${names.length} 位領支票的債權人，確定嗎？`)) return;
-  ntEnvelopes = names.map(n => ({ name:n, title:'', zip:'', addr:'' }));
+  ntEnvelopes = names.map(n => ({ name:n, titleMode:'none', customTitle:'', titleShift:0, zip:'', addr:'' }));
   ntRenderEnvelopes();
 }
 function ntRenderEnvelopes() {
-  document.getElementById('nt-env-list').innerHTML = ntEnvelopes.map((e,i) => `
+  document.getElementById('nt-env-list').innerHTML = ntEnvelopes.map((e,i) => {
+    ntEnsureEnvelopeTitleState(e);
+    return `
     <div class="policy-card">
       <div class="policy-header">
         <span class="policy-num">收件人 ${i+1}</span>
@@ -3182,15 +3269,27 @@ function ntRenderEnvelopes() {
             ${ntOrgOptions()}
           </select>
         </div>
-        <div>
+        <div class="full">
           <label class="field-label">收件人</label>
           <input type="text" value="${escapeHtml(e.name)}" placeholder="○○銀行／○○地方法院"
                  oninput="ntSetEnvelope(${i},'name',this.value)" style="width:100%">
         </div>
-        <div>
-          <label class="field-label">稱謂 <span style="font-size:10px;color:var(--text-light);">（可留空）</span></label>
-          <input type="text" value="${escapeHtml(e.title)}" placeholder="先生／小姐／啟"
-                 oninput="ntSetEnvelope(${i},'title',this.value)" style="width:100%">
+        <div class="full">
+          <label class="field-label">稱謂</label>
+          <div class="title-choice-group">
+            <button class="toggle-btn${e.titleMode==='mr'?' active':''}" onclick="ntSetEnvelopeTitleMode(${i},'mr')">先生</button>
+            <button class="toggle-btn${e.titleMode==='ms'?' active':''}" onclick="ntSetEnvelopeTitleMode(${i},'ms')">小姐</button>
+            <button class="toggle-btn${e.titleMode==='none'?' active':''}" onclick="ntSetEnvelopeTitleMode(${i},'none')">不加稱謂</button>
+            <button class="toggle-btn${e.titleMode==='custom'?' active':''}" onclick="ntSetEnvelopeTitleMode(${i},'custom')">自行填寫</button>
+          </div>
+          <input type="text" id="nt-env-custom-title-${i}" class="${e.titleMode==='custom'?'':'hidden'}" value="${escapeHtml(e.customTitle || '')}"
+                 placeholder="請輸入稱謂，例如：啟" oninput="ntSetEnvelopeCustomTitle(${i},this.value)" style="width:100%;margin-top:8px;">
+          <div class="title-shift-row${e.titleMode==='none'?' hidden':''}">
+            <span>稱謂往下移</span>
+            <button class="mini-btn" onclick="ntShiftEnvelopeTitle(${i},-1)" aria-label="稱謂往上移一字">－</button>
+            <strong>${e.titleShift || 0} 字</strong>
+            <button class="mini-btn" onclick="ntShiftEnvelopeTitle(${i},1)" aria-label="稱謂往下移一字">＋</button>
+          </div>
         </div>
         <div>
           <label class="field-label">郵遞區號</label>
@@ -3204,7 +3303,8 @@ function ntRenderEnvelopes() {
                  oninput="ntSetEnvelope(${i},'addr',this.value)" style="width:100%">
         </div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
   const btn = document.getElementById('nt-env-print-btn');
   if (btn) btn.textContent = `🖨️ 列印信封（${ntEnvelopes.length} 張）`;
   const receiptBtn = document.getElementById('nt-receipt-print-btn');
@@ -3251,7 +3351,7 @@ function ntRenderOrgManager() {
   box.innerHTML = orgManagerHtml(list);
 }
 
-function ntAddEnvelope() { ntEnvelopes.push({ name:'', title:'', zip:'', addr:'' }); ntRenderEnvelopes(); }
+function ntAddEnvelope() { ntEnvelopes.push({ name:'', titleMode:'none', customTitle:'', titleShift:0, zip:'', addr:'' }); ntRenderEnvelopes(); }
 function ntRemoveEnvelope(i) { ntEnvelopes.splice(i,1); ntRenderEnvelopes(); }
 function ntSetEnvelope(i,k,v) { ntEnvelopes[i][k] = v; }
 function ntPrintEnvelopes() {
@@ -3261,8 +3361,7 @@ function ntPrintEnvelopes() {
     name:  e.name.trim() || '○○',
     zip:   e.zip.trim()  || '000000',
     addr:  e.addr.trim() || '○○縣○○市○○路○號',
-    // 只去尾端空白：開頭的空格是使用者用來把稱謂往下推的，trim() 會把它砍掉
-    title: e.title.replace(/\s+$/, ''),
+    title: ntEnvelopeTitle(e),
     docnum, sender,
   })));
 }
@@ -3273,7 +3372,7 @@ function ntPrintReceipts() {
     name: e.name.trim() || '○○',
     zip: e.zip.trim() || '000',
     addr: e.addr.trim() || '○○縣○○市○○路○號',
-    title: e.title.replace(/\s+$/, ''),
+    title: ntEnvelopeTitle(e),
     ordernum,
     sender,
   })));
@@ -3315,7 +3414,7 @@ function clearCase() {
     ntSubjectEdited = false;
     ntEnvDocNumEdited = false;
     ntEnvelopes.length = 0;
-    ntEnvelopes.push({ name:'', title:'', zip:'', addr:'' });
+    ntEnvelopes.push({ name:'', titleMode:'none', customTitle:'', titleShift:0, zip:'', addr:'' });
     // 清空後 select 已回到第一個選項，這裡再明確指定一次預設值
     document.getElementById('nt-note2Type').value = 'cancel';
     document.getElementById('nt-note3Type').value = 'none';
@@ -3327,6 +3426,7 @@ function clearCase() {
     ntSwitchTab('form');
   } else {
     clearFieldsIn('scenario-termination');
+    resetEnvTitleControls();
     policies.length = 0;
     policies.push({ name:'', number:'', amount:'', currency:'新臺幣', loan:'0', advance:'0', fee:'250', feeEdited:false, pay:'匯款' });
     extraParas.length = 0;
@@ -3347,6 +3447,7 @@ function clearCase() {
 
 // Init
 renderPolicies();
+resetEnvTitleControls();
 loadEnvCalib();
 loadSenderSettings();
 renderEnvOrgPicker();
