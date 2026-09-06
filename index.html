@@ -1038,7 +1038,12 @@ textarea { resize: vertical; min-height: 70px; }
                   <input type="text" id="env-cal-h" placeholder="270" oninput="saveEnvCalib()">
                 </div>
               </div>
-              <div style="font-size:11px;font-weight:700;color:var(--text-mid);margin:10px 0 6px;">郵遞區號／地址（右側）偏移</div>
+              <div style="font-size:11px;font-weight:700;color:var(--text-mid);margin:10px 0 6px;">郵遞區號（右側）偏移</div>
+              <div class="grid2">
+                <div><label class="field-label">左右 dx</label><input type="text" id="env-cal-zip-dx" placeholder="0" oninput="saveEnvCalib()"></div>
+                <div><label class="field-label">上下 dy</label><input type="text" id="env-cal-zip-dy" placeholder="0" oninput="saveEnvCalib()"></div>
+              </div>
+              <div style="font-size:11px;font-weight:700;color:var(--text-mid);margin:10px 0 6px;">地址（右側）偏移</div>
               <div class="grid2">
                 <div><label class="field-label">左右 dx</label><input type="text" id="env-cal-addr-dx" placeholder="0" oninput="saveEnvCalib()"></div>
                 <div><label class="field-label">上下 dy</label><input type="text" id="env-cal-addr-dy" placeholder="0" oninput="saveEnvCalib()"></div>
@@ -1365,6 +1370,10 @@ textarea { resize: vertical; min-height: 70px; }
       <!-- 只留最近四筆，新增一筆就把最舊的那筆刪掉 -->
       <div style="font-size:11.5px;color:var(--text-mid);line-height:1.8;">
         <div style="margin-bottom:8px;">
+          <strong>v1.19</strong>　2026-09-07<br>
+          信封的郵遞區號與地址改為可分開校正
+        </div>
+        <div style="margin-bottom:8px;">
           <strong>v1.18</strong>　2026-09-07<br>
           信封校正改用實際列印確認值作為預設；移除測試參考框
         </div>
@@ -1375,10 +1384,6 @@ textarea { resize: vertical; min-height: 70px; }
         <div style="margin-bottom:8px;">
           <strong>v1.16</strong>　2026-09-02<br>
           回執聯改用最新範本座標；非解約公文新增債務人識別斜線、金額千分位及第二點寫法；解約信封稱謂可留空
-        </div>
-        <div style="margin-bottom:8px;">
-          <strong>v1.15</strong>　2026-08-23<br>
-          非解約給付對象可選債權人或自行填寫法院、移送機關等名稱；日期提醒改為直接顯示在欄位下方
         </div>
       </div>
     </div>
@@ -1412,7 +1417,7 @@ textarea { resize: vertical; min-height: 70px; }
 <script>
 // ===== VERSION / 版權資訊 =====
 // 本工具原創設計、開發：Miyabi。每次更新請同步修改這裡的版本號與日期。
-const APP_VERSION = 'v1.18';
+const APP_VERSION = 'v1.19';
 const APP_UPDATED = '2026-09-07';
 const APP_AUTHOR = 'Miyabi';
 console.log(`%c法扣案件公文套版工具 ${APP_VERSION}`, 'font-weight:bold;color:#c4973a;');
@@ -2125,6 +2130,7 @@ const ENV_COL_BOTTOM_MM = 30;
 // w/h 為列印紙張尺寸，與範本 PDF 一致；信封實際落點由印表機送紙位置決定
 const ENV_CALIB_DEFAULT = {
   w: ENV_PAPER.w, h: ENV_PAPER.h,
+  zipDx: -6, zipDy: -20,
   addrDx: -6, addrDy: -20,
   nameDx: -1, nameDy: -15,
   senderDx: 3, senderDy: 0,
@@ -2134,9 +2140,14 @@ function loadEnvCalib() {
   let saved = {};
   // key 帶版本：每次變更版型基準（紙張尺寸／座標模型）時遞增，讓已存的舊校正值自動失效
   try { saved = JSON.parse(localStorage.getItem('envCalibV4') || '{}'); } catch(e) {}
+  // 舊版將郵遞區號與地址綁在一起；第一次載入新版時，郵遞區號沿用原本的地址校正值。
+  if (!Number.isFinite(Number(saved.zipDx)) && Number.isFinite(Number(saved.addrDx))) saved.zipDx = Number(saved.addrDx);
+  if (!Number.isFinite(Number(saved.zipDy)) && Number.isFinite(Number(saved.addrDy))) saved.zipDy = Number(saved.addrDy);
   const c = Object.assign({}, ENV_CALIB_DEFAULT, saved);
   document.getElementById('env-cal-w').value = c.w;
   document.getElementById('env-cal-h').value = c.h;
+  document.getElementById('env-cal-zip-dx').value = c.zipDx;
+  document.getElementById('env-cal-zip-dy').value = c.zipDy;
   document.getElementById('env-cal-addr-dx').value = c.addrDx;
   document.getElementById('env-cal-addr-dy').value = c.addrDy;
   document.getElementById('env-cal-name-dx').value = c.nameDx;
@@ -2149,6 +2160,7 @@ function getEnvCalib() {
   return {
     w: num('env-cal-w', ENV_CALIB_DEFAULT.w),
     h: num('env-cal-h', ENV_CALIB_DEFAULT.h),
+    zipDx: num('env-cal-zip-dx', ENV_CALIB_DEFAULT.zipDx), zipDy: num('env-cal-zip-dy', ENV_CALIB_DEFAULT.zipDy),
     addrDx: num('env-cal-addr-dx', ENV_CALIB_DEFAULT.addrDx), addrDy: num('env-cal-addr-dy', ENV_CALIB_DEFAULT.addrDy),
     nameDx: num('env-cal-name-dx', ENV_CALIB_DEFAULT.nameDx), nameDy: num('env-cal-name-dy', ENV_CALIB_DEFAULT.nameDy),
     senderDx: num('env-cal-sender-dx', ENV_CALIB_DEFAULT.senderDx), senderDy: num('env-cal-sender-dy', ENV_CALIB_DEFAULT.senderDy),
@@ -2246,7 +2258,7 @@ function buildEnvelopeHTML(data, calib) {
   // 郵遞區號在範本中是「橫書」文字方塊（docx vert=horz），數字一律水平排列。
   // 不可套用直書欄的數字規則：超過 4 碼會觸發橫躺而往下延伸，撞到下方的地址欄。
   const zipHTML =
-    `<div style="position:absolute;top:${B.zip.top + ENV_PRINT_OFFSET_Y + calib.addrDy}mm;right:${B.zip.cx - calib.addrDx}mm;`
+    `<div style="position:absolute;top:${B.zip.top + ENV_PRINT_OFFSET_Y + calib.zipDy}mm;right:${B.zip.cx - calib.zipDx}mm;`
     + `transform:translateX(50%);line-height:1;white-space:nowrap;font-size:${B.zip.pt}pt;">${escapeHtml(zip)}</div>`;
 
   // 姓名字距為 1em：PDF 實測 26pt 姓名的字距 18.38mm，約為字級 9.17mm 的兩倍。
@@ -2545,10 +2557,13 @@ function cleanBackupSender(value) {
 function cleanBackupCalib(value) {
   const source = value && typeof value === 'object' ? value : {};
   const clean = Object.assign({}, ENV_CALIB_DEFAULT);
-  ['w','h','addrDx','addrDy','nameDx','nameDy','senderDx','senderDy'].forEach(k => {
+  ['w','h','zipDx','zipDy','addrDx','addrDy','nameDx','nameDy','senderDx','senderDy'].forEach(k => {
     const n = Number(source[k]);
     if (Number.isFinite(n) && Math.abs(n) <= 1000) clean[k] = n;
   });
+  // 舊備份沒有獨立的郵遞區號校正，還原時沿用當時的地址校正值。
+  if (!Number.isFinite(Number(source.zipDx)) && Number.isFinite(Number(source.addrDx))) clean.zipDx = clean.addrDx;
+  if (!Number.isFinite(Number(source.zipDy)) && Number.isFinite(Number(source.addrDy))) clean.zipDy = clean.addrDy;
   return clean;
 }
 function cleanBackupRecipients(value) {
