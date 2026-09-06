@@ -1026,16 +1026,16 @@ textarea { resize: vertical; min-height: 70px; }
             <div style="margin-top:10px;padding:12px;background:#f8f9fd;border-radius:8px;border:1px solid var(--border);">
               <div class="alert-box alert-gold" style="margin-bottom:10px;">
                 <span>💡</span>
-                <div>版型座標取自公司信封範本，並已內建實測補償（整體上移 20mm），一般情況直接列印即可、偏移量維持 0。若換了印表機或送紙方式導致位置有落差，再用下方偏移量微調（單位 mm），設定會自動記住。</div>
+                <div>下方已帶入實際列印確認過的預設值，一般情況可直接使用。若換了印表機或送紙方式導致位置有落差，再用偏移量微調（單位 mm），設定會自動記住。</div>
               </div>
               <div class="grid2" style="margin-bottom:10px;">
                 <div>
                   <label class="field-label">列印紙張寬 (mm)</label>
-                  <input type="text" id="env-cal-w" placeholder="197" oninput="saveEnvCalib()">
+                  <input type="text" id="env-cal-w" placeholder="200" oninput="saveEnvCalib()">
                 </div>
                 <div>
                   <label class="field-label">列印紙張高 (mm)</label>
-                  <input type="text" id="env-cal-h" placeholder="273" oninput="saveEnvCalib()">
+                  <input type="text" id="env-cal-h" placeholder="270" oninput="saveEnvCalib()">
                 </div>
               </div>
               <div style="font-size:11px;font-weight:700;color:var(--text-mid);margin:10px 0 6px;">郵遞區號／地址（右側）偏移</div>
@@ -1053,10 +1053,6 @@ textarea { resize: vertical; min-height: 70px; }
                 <div><label class="field-label">左右 dx</label><input type="text" id="env-cal-sender-dx" placeholder="0" oninput="saveEnvCalib()"></div>
                 <div><label class="field-label">上下 dy</label><input type="text" id="env-cal-sender-dy" placeholder="0" oninput="saveEnvCalib()"></div>
               </div>
-              <label class="checkbox-row" style="margin-top:10px;">
-                <input type="checkbox" id="env-cal-guides" onchange="saveEnvCalib()">
-                <span>顯示測試參考框（郵票／郵遞區號格線，僅供空白紙測試對齊用；套印公司信封時請取消勾選）</span>
-              </label>
               <button class="secondary-btn" style="margin:10px 0 0;" onclick="resetEnvCalib()">↺ 恢復預設校正值</button>
             </div>
           </details>
@@ -1369,6 +1365,10 @@ textarea { resize: vertical; min-height: 70px; }
       <!-- 只留最近四筆，新增一筆就把最舊的那筆刪掉 -->
       <div style="font-size:11.5px;color:var(--text-mid);line-height:1.8;">
         <div style="margin-bottom:8px;">
+          <strong>v1.18</strong>　2026-09-07<br>
+          信封校正改用實際列印確認值作為預設；移除測試參考框
+        </div>
+        <div style="margin-bottom:8px;">
           <strong>v1.17</strong>　2026-09-02<br>
           解約與非解約分頁統一改為「郵寄列印」；移除重複明細表；非解約主旨金額自動加千分位
         </div>
@@ -1379,10 +1379,6 @@ textarea { resize: vertical; min-height: 70px; }
         <div style="margin-bottom:8px;">
           <strong>v1.15</strong>　2026-08-23<br>
           非解約給付對象可選債權人或自行填寫法院、移送機關等名稱；日期提醒改為直接顯示在欄位下方
-        </div>
-        <div style="margin-bottom:8px;">
-          <strong>v1.14</strong>　2026-08-22<br>
-          非解約填寫順序調整為案件資料、給付項目、債權人與給付方式；選擇給付方式後，只顯示本案需要填寫的日期
         </div>
       </div>
     </div>
@@ -1416,8 +1412,8 @@ textarea { resize: vertical; min-height: 70px; }
 <script>
 // ===== VERSION / 版權資訊 =====
 // 本工具原創設計、開發：Miyabi。每次更新請同步修改這裡的版本號與日期。
-const APP_VERSION = 'v1.17';
-const APP_UPDATED = '2026-09-02';
+const APP_VERSION = 'v1.18';
+const APP_UPDATED = '2026-09-07';
 const APP_AUTHOR = 'Miyabi';
 console.log(`%c法扣案件公文套版工具 ${APP_VERSION}`, 'font-weight:bold;color:#c4973a;');
 console.log(`© 2026 ${APP_AUTHOR}．原創設計與開發．最後更新：${APP_UPDATED}`);
@@ -2117,8 +2113,6 @@ const ENV_BASE = {
   // s3 的 top 與 s1/s2 對齊：PDF 量到 131.28 是因為該欄首字為橫躺的 Arial 數字，
   // 其 bbox 起算方式與中文字不同，方塊本身仍與另兩欄齊頭
   s3:   { cx: 158.15, top: 135.31, pt: 12 },
-  stampMM: 6, stampSizeMM: 20,
-  zipMM: 6, zipBoxMM: 6.2,
 };
 // 版面微調：上表為範本 PDF 中相對於 Word 頁面頂端的座標，照抄套印後整體看起來偏低，
 // 故人工往上移 20mm。這是肉眼判斷的版面調整，不是量出來的，也與印表機無關
@@ -2129,7 +2123,12 @@ const ENV_PRINT_OFFSET_Y = -20;
 // 避免機關全銜（如「○○銀行股份有限公司債權管理部」）直接被紙張下緣切掉。
 const ENV_COL_BOTTOM_MM = 30;
 // w/h 為列印紙張尺寸，與範本 PDF 一致；信封實際落點由印表機送紙位置決定
-const ENV_CALIB_DEFAULT = { w:ENV_PAPER.w, h:ENV_PAPER.h, addrDx:0, addrDy:0, nameDx:0, nameDy:0, senderDx:0, senderDy:0, guides:false };
+const ENV_CALIB_DEFAULT = {
+  w: ENV_PAPER.w, h: ENV_PAPER.h,
+  addrDx: -6, addrDy: -20,
+  nameDx: -1, nameDy: -15,
+  senderDx: 3, senderDy: 0,
+};
 
 function loadEnvCalib() {
   let saved = {};
@@ -2144,17 +2143,15 @@ function loadEnvCalib() {
   document.getElementById('env-cal-name-dy').value = c.nameDy;
   document.getElementById('env-cal-sender-dx').value = c.senderDx;
   document.getElementById('env-cal-sender-dy').value = c.senderDy;
-  document.getElementById('env-cal-guides').checked = c.guides;
 }
 function getEnvCalib() {
   const num = (id, def) => { const v = parseFloat(document.getElementById(id).value); return isNaN(v) ? def : v; };
   return {
     w: num('env-cal-w', ENV_CALIB_DEFAULT.w),
     h: num('env-cal-h', ENV_CALIB_DEFAULT.h),
-    addrDx: num('env-cal-addr-dx', 0), addrDy: num('env-cal-addr-dy', 0),
-    nameDx: num('env-cal-name-dx', 0), nameDy: num('env-cal-name-dy', 0),
-    senderDx: num('env-cal-sender-dx', 0), senderDy: num('env-cal-sender-dy', 0),
-    guides: document.getElementById('env-cal-guides').checked,
+    addrDx: num('env-cal-addr-dx', ENV_CALIB_DEFAULT.addrDx), addrDy: num('env-cal-addr-dy', ENV_CALIB_DEFAULT.addrDy),
+    nameDx: num('env-cal-name-dx', ENV_CALIB_DEFAULT.nameDx), nameDy: num('env-cal-name-dy', ENV_CALIB_DEFAULT.nameDy),
+    senderDx: num('env-cal-sender-dx', ENV_CALIB_DEFAULT.senderDx), senderDy: num('env-cal-sender-dy', ENV_CALIB_DEFAULT.senderDy),
   };
 }
 // localStorage 在隱私模式或某些嵌入情境會被封鎖並拋出 SecurityError，
@@ -2248,20 +2245,9 @@ function buildEnvelopeHTML(data, calib) {
 
   // 郵遞區號在範本中是「橫書」文字方塊（docx vert=horz），數字一律水平排列。
   // 不可套用直書欄的數字規則：超過 4 碼會觸發橫躺而往下延伸，撞到下方的地址欄。
-  const zipHTML = calib.guides ? '' :
+  const zipHTML =
     `<div style="position:absolute;top:${B.zip.top + ENV_PRINT_OFFSET_Y + calib.addrDy}mm;right:${B.zip.cx - calib.addrDx}mm;`
     + `transform:translateX(50%);line-height:1;white-space:nowrap;font-size:${B.zip.pt}pt;">${escapeHtml(zip)}</div>`;
-
-  let guidesHTML = '';
-  if (calib.guides) {
-    const zipDigits = zip.replace(/\D/g,'').padEnd(6,' ');
-    const zipBoxes = [...zipDigits].map(d =>
-      `<div style="width:${B.zipBoxMM}mm;height:${B.zipBoxMM}mm;border:1px solid #e05;display:flex;align-items:center;justify-content:center;font-size:10pt;color:#333;">${escapeHtml(d.trim())}</div>`
-    ).join('');
-    guidesHTML = `
-      <div style="position:absolute;top:${B.stampMM}mm;left:${B.stampMM}mm;width:${B.stampSizeMM}mm;height:${B.stampSizeMM}mm;border:1.5px solid #e05;display:flex;align-items:center;justify-content:center;flex-direction:column;color:#e05;font-size:8pt;line-height:1.4;text-align:center;">郵票<br>黏貼</div>
-      <div style="position:absolute;top:${B.zipMM}mm;right:${B.zipMM}mm;display:flex;flex-direction:row;gap:2px;">${zipBoxes}</div>`;
-  }
 
   // 姓名字距為 1em：PDF 實測 26pt 姓名的字距 18.38mm，約為字級 9.17mm 的兩倍。
   // 但那是照個人姓名（3～4 字）量的，機關全銜（如「○○銀行債權管理部」）套上去會整個
@@ -2307,7 +2293,6 @@ function buildEnvelopeHTML(data, calib) {
   }
 
   return `<div style="width:${calib.w}mm;height:${calib.h}mm;position:relative;overflow:hidden;background:#fff;font-family:'標楷體','DFKai-SB',serif;">
-    ${guidesHTML}
     ${zipHTML}
     ${col(B.addr, calib.addrDx, calib.addrDy, rotateNums(addr), wrapStyle(B.addr, calib.addrDy))}
     ${nameHTML}
@@ -2564,7 +2549,6 @@ function cleanBackupCalib(value) {
     const n = Number(source[k]);
     if (Number.isFinite(n) && Math.abs(n) <= 1000) clean[k] = n;
   });
-  clean.guides = source.guides === true;
   return clean;
 }
 function cleanBackupRecipients(value) {
